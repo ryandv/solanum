@@ -1,0 +1,10 @@
+[package]
+name = "solanum"
+version = "0.1.0"
+authors = ["Ryan DV <rdevilla@uwaterloo.ca>"]
+
+[dependencies]
+nix  = "0.7.0"
+
+[profile.dev]
+debug = true
