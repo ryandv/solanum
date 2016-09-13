@@ -5,7 +5,6 @@ authors = ["Ryan DV <rdevilla@uwaterloo.ca>"]
 
 [dependencies]
 nix = "0.7.0"
-unix_socket = "0.5.0"
 
 [profile.dev]
 debug = true

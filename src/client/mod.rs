@@ -1,8 +1,6 @@
-extern crate unix_socket;
-
 use std::io::{Error, Write};
 use std::time::Duration;
-use self::unix_socket::UnixStream;
+use std::os::unix::net::UnixStream;
 
 pub struct Client {
 }
