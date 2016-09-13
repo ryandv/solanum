@@ -58,7 +58,7 @@ fn main()
 
         println!("Daemonized");
 
-        let daemon = daemon::Daemon {};
+        let daemon = daemon::Daemon::new();
         daemon.start();
     }
 }
