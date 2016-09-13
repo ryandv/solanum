@@ -1,9 +1,11 @@
+extern crate solanum;
 extern crate nix;
 
 use std::ffi::{CString};
 use std::io::Error;
 use nix::libc::{c_char, chdir, exit, EXIT_FAILURE, EXIT_SUCCESS, fork, getpid, pid_t, umask, setsid};
-use nix::unistd::{sleep};
+
+use solanum::daemon;
 
 fn main()
 {
@@ -56,9 +58,7 @@ fn main()
 
         println!("Daemonized");
 
-        loop {
-            println!("Hello world");
-            sleep(5);
-        }
+        let daemon = daemon::Daemon {};
+        daemon.start();
     }
 }
