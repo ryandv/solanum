@@ -7,7 +7,11 @@ mod spec {
 
     use std::process::Command;
     use std::error::Error;
+    use std::path::Path;
     use std::result;
+
+    use nix::libc::pid_t;
+    use nix::sys::signal;
     use nix::unistd::{sleep};
 
     #[test]
@@ -24,5 +28,16 @@ mod spec {
         let client = client::Client {};
         let response = client.send_message();
         assert!(response.is_err());
+    }
+
+    #[test]
+    #[ignore]
+    fn daemon_closes_listener_socket_on_sigterm() {
+        let daemon = Command::new("target/debug/solanumd").spawn().unwrap();
+        let socket_path = Path::new("/tmp/solanum");
+        sleep(1);
+        signal::kill(daemon.id() as pid_t, signal::Signal::SIGTERM);
+        sleep(3);
+        assert!(!socket_path.exists());
     }
 }

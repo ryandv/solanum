@@ -7,7 +7,7 @@ use nix::libc::{c_char, chdir, exit, EXIT_FAILURE, EXIT_SUCCESS, fork, getpid, p
 
 use solanum::daemon;
 
-fn main()
+fn daemonize()
 {
     unsafe {
         let child_pid : pid_t;
@@ -55,10 +55,14 @@ fn main()
             println!("Could not chdir to root: {}", Error::last_os_error());
             exit(EXIT_FAILURE);
         }
-
-        println!("Daemonized");
-
-        let daemon = daemon::Daemon::new();
-        daemon.start();
     }
+
+    println!("Daemonized");
+}
+
+fn main()
+{
+    daemonize();
+    let daemon = daemon::Daemon::new();
+    daemon.start();
 }
