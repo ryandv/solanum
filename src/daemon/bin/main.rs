@@ -1,8 +1,10 @@
 extern crate mio;
+extern crate mio_uds;
 extern crate nix;
 extern crate solanum;
 
-use mio::{ Events, Poll };
+use mio_uds::{UnixListener, UnixStream};
+use mio::{ Events, Poll, PollOpt, Ready, Token };
 
 use nix::libc::{c_char, chdir, exit, EXIT_FAILURE, EXIT_SUCCESS, fork, getpid, pid_t, umask, setsid};
 
@@ -11,7 +13,6 @@ use solanum::daemon;
 use std::ffi::{CString};
 use std::io::{Error, Read};
 use std::net::Shutdown;
-use std::os::unix::net::{UnixListener, UnixStream};
 
 fn daemonize()
 {
@@ -72,16 +73,22 @@ fn main()
     let mut poll = Poll::new().unwrap();
     let mut events = Events::with_capacity(1024);
     let listener = UnixListener::bind("/tmp/solanum").unwrap();
-    for stream in listener.incoming() {
-        match stream {
-            Ok(mut stream) => {
-                let mut message = String::new();
-                stream.read_to_string(&mut message).unwrap();
-                stream.shutdown(Shutdown::Both);
-            },
-            Err(_) => {
-                break;
+    poll.register(&listener, Token(0), Ready::readable(), PollOpt::edge()).expect("could not register listener with poll");
+    loop {
+        poll.poll(&mut events, None).unwrap();
+
+        for event in events.iter() {
+            match event.token() {
+                Token(0) => {
+                    let (mut stream, _) = listener.accept().unwrap().unwrap();
+                    let mut message = String::new();
+                    stream.read_to_string(&mut message).unwrap();
+                    stream.shutdown(Shutdown::Both);
+                },
+                _ => {
+                    panic!("Unhandled token");
+                }
             }
         }
-    };
+    }
 }
