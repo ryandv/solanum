@@ -7,17 +7,17 @@ use self::mio_uds::{UnixListener, UnixStream};
 use std::io::{Error, Read};
 use std::net::Shutdown;
 
-pub struct Daemon {
+pub struct CommandProcessor {
     listener : UnixListener
 }
 
-impl Daemon {
-    pub fn new(poll : &Poll) -> Daemon
+impl CommandProcessor {
+    pub fn new(poll : &Poll) -> CommandProcessor
     {
         let listener = UnixListener::bind("/tmp/solanum").unwrap();
         poll.register(&listener, Token(0), Ready::readable(), PollOpt::edge()).expect("could not register listener with poll");
 
-        Daemon { listener : listener }
+        CommandProcessor { listener : listener }
     }
 
     pub fn handle_acceptor(&self)

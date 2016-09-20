@@ -99,7 +99,7 @@ fn main()
 
     let poll = Poll::new().unwrap();
     let mut events = Events::with_capacity(1024);
-    let daemon = daemon::Daemon::new(&poll);
+    let daemon = daemon::CommandProcessor::new(&poll);
 
     register_signalfd_poll(&poll);
 
