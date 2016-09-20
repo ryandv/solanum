@@ -4,6 +4,8 @@ version = "0.1.0"
 authors = ["Ryan DV <rdevilla@uwaterloo.ca>"]
 
 [dependencies]
+mio = "0.6.0"
+mio-uds = "0.6.0"
 nix = "0.7.0"
 
 [profile.dev]

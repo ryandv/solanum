@@ -1,11 +1,17 @@
-extern crate solanum;
+extern crate mio;
 extern crate nix;
+extern crate solanum;
 
-use std::ffi::{CString};
-use std::io::Error;
+use mio::{ Events, Poll };
+
 use nix::libc::{c_char, chdir, exit, EXIT_FAILURE, EXIT_SUCCESS, fork, getpid, pid_t, umask, setsid};
 
 use solanum::daemon;
+
+use std::ffi::{CString};
+use std::io::{Error, Read};
+use std::net::Shutdown;
+use std::os::unix::net::{UnixListener, UnixStream};
 
 fn daemonize()
 {
@@ -63,6 +69,19 @@ fn daemonize()
 fn main()
 {
     daemonize();
-    let daemon = daemon::Daemon::new();
-    daemon.start();
+    let mut poll = Poll::new().unwrap();
+    let mut events = Events::with_capacity(1024);
+    let listener = UnixListener::bind("/tmp/solanum").unwrap();
+    for stream in listener.incoming() {
+        match stream {
+            Ok(mut stream) => {
+                let mut message = String::new();
+                stream.read_to_string(&mut message).unwrap();
+                stream.shutdown(Shutdown::Both);
+            },
+            Err(_) => {
+                break;
+            }
+        }
+    };
 }
