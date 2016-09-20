@@ -5,7 +5,9 @@ extern crate nix;
 mod spec {
     use solanum::client;
 
-    use std::process::Command;
+    use std::process;
+    use std::fs;
+    use std::io::Read;
     use std::error::Error;
     use std::path::Path;
     use std::result;
@@ -15,29 +17,35 @@ mod spec {
     use nix::unistd::{sleep};
 
     #[test]
-    fn client_can_communicate_with_daemon() {
-        Command::new("target/debug/solanumd").spawn();
-        sleep(1);
-        let client = client::Client {};
-        let result = client.send_message();
-        assert!(result.is_ok());
+    fn full_lifecycle_test() {
+        client_returns_error_when_daemon_is_not_active();
+        let daemonProcess = client_can_communicate_with_daemon();
+        daemon_closes_listener_socket_on_sigterm(daemonProcess);
     }
 
-    #[test]
     fn client_returns_error_when_daemon_is_not_active() {
         let client = client::Client {};
         let response = client.send_message();
         assert!(response.is_err());
     }
 
-    #[test]
-    #[ignore]
-    fn daemon_closes_listener_socket_on_sigterm() {
-        let daemon = Command::new("target/debug/solanumd").spawn().unwrap();
-        let socket_path = Path::new("/tmp/solanum");
+    fn client_can_communicate_with_daemon() -> process::Child {
+        let daemonProcess = process::Command::new("target/debug/solanumd").spawn().unwrap();
         sleep(1);
-        signal::kill(daemon.id() as pid_t, signal::Signal::SIGTERM);
-        sleep(3);
+        let client = client::Client {};
+        let result = client.send_message();
+        assert!(result.is_ok());
+        daemonProcess
+    }
+
+    fn daemon_closes_listener_socket_on_sigterm(daemonProcess : process::Child) {
+        let socket_path = Path::new("/tmp/solanum");
+        let pidfile_path = Path::new("/tmp/solanum.pid");
+        let mut pidfile = fs::File::open(pidfile_path).unwrap();
+        let mut pidString = String::new();
+        pidfile.read_to_string(&mut pidString).unwrap();
+        signal::kill(pidString.parse::<pid_t>().unwrap() as pid_t, signal::Signal::SIGTERM).unwrap();
+        sleep(1);
         assert!(!socket_path.exists());
     }
 }

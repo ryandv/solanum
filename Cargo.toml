@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Ryan DV <rdevilla@uwaterloo.ca>"]
 
 [dependencies]
+libc = "0.2.16"
 mio = "0.6.0"
 mio-uds = "0.6.0"
 nix = "0.7.0"
