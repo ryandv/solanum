@@ -19,8 +19,8 @@ mod spec {
     #[test]
     fn full_lifecycle_test() {
         client_returns_error_when_daemon_is_not_active();
-        let daemonProcess = client_can_communicate_with_daemon();
-        daemon_closes_listener_socket_on_sigterm(daemonProcess);
+        client_can_communicate_with_daemon();
+        daemon_closes_listener_socket_on_sigterm();
     }
 
     fn client_returns_error_when_daemon_is_not_active() {
@@ -29,16 +29,15 @@ mod spec {
         assert!(response.is_err());
     }
 
-    fn client_can_communicate_with_daemon() -> process::Child {
-        let daemonProcess = process::Command::new("target/debug/solanumd").spawn().unwrap();
+    fn client_can_communicate_with_daemon() {
+        process::Command::new("target/debug/solanumd").spawn().unwrap();
         sleep(1);
         let client = client::Client {};
         let result = client.send_message();
         assert!(result.is_ok());
-        daemonProcess
     }
 
-    fn daemon_closes_listener_socket_on_sigterm(daemonProcess : process::Child) {
+    fn daemon_closes_listener_socket_on_sigterm() {
         let socket_path = Path::new("/tmp/solanum");
         let pidfile_path = Path::new("/tmp/solanum.pid");
         let mut pidfile = fs::File::open(pidfile_path).unwrap();
