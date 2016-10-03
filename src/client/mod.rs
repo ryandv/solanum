@@ -6,6 +6,9 @@ pub struct Client {
 }
 
 impl Client {
+    pub fn new() -> Client {
+        Client {}
+    }
     pub fn send_message(&self, message : String) -> Result<String, Error> {
         let mut stream = try!(UnixStream::connect("/tmp/solanum"));
         try!(stream.set_write_timeout(Some(Duration::new(5, 0))));

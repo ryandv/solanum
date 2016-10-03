@@ -20,7 +20,7 @@ mod spec {
     #[test]
     fn full_lifecycle_test() {
         client_returns_error_when_daemon_is_not_active();
-        client_can_communicate_with_daemon();
+        client_can_start_a_pomodoro();
         daemon_closes_listener_socket_on_sigterm();
     }
 
@@ -30,7 +30,7 @@ mod spec {
         assert!(response.is_err());
     }
 
-    fn client_can_communicate_with_daemon() {
+    fn client_can_start_a_pomodoro() {
         process::Command::new("target/debug/solanumd").spawn().unwrap();
         sleep(1);
         let client = client::Client {};
