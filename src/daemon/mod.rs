@@ -1,11 +1,12 @@
 extern crate mio;
 extern crate mio_uds;
+extern crate time;
 
 use self::mio::{ Poll, PollOpt, Ready, Token };
 use self::mio_uds::UnixListener;
 
 use std::fs;
-use std::io::{ Error, Read };
+use std::io::{ Error, Read, Write };
 use std::net::Shutdown;
 use std::path::Path;
 
@@ -29,9 +30,16 @@ impl CommandProcessor
         let accept_option = try!(self.listener.accept());
         match accept_option {
             Some((mut stream, _)) => {
-                let mut message = String::new();
-                try!(stream.read_to_string(&mut message));
+                let mut buf : [u8; 1024] = [0; 1024];
+
+                try!(stream.read(&mut buf));
+                let command = String::from_utf8(buf.to_vec()).unwrap();
+
+                let current_time = time::strftime("%F %H:%M:%S", &time::now()).unwrap();
+                try!(stream.write_all(format!("Pomodoro started at {}", current_time).as_bytes()));
+
                 try!(stream.shutdown(Shutdown::Both));
+
                 Ok(())
             },
             None => {

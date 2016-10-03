@@ -1,4 +1,5 @@
 extern crate solanum;
+extern crate time;
 extern crate nix;
 
 #[cfg(test)]
@@ -9,6 +10,8 @@ mod spec {
     use std::fs;
     use std::io::Read;
     use std::path::Path;
+
+    use time;
 
     use nix::libc::pid_t;
     use nix::sys::signal;
@@ -23,7 +26,7 @@ mod spec {
 
     fn client_returns_error_when_daemon_is_not_active() {
         let client = client::Client {};
-        let response = client.send_message();
+        let response = client.send_message(String::from("START"));
         assert!(response.is_err());
     }
 
@@ -31,8 +34,10 @@ mod spec {
         process::Command::new("target/debug/solanumd").spawn().unwrap();
         sleep(1);
         let client = client::Client {};
-        let result = client.send_message();
+        let result = client.send_message(String::from("START"));
         assert!(result.is_ok());
+        let response = result.unwrap();
+        assert!(pomodoro_is_started_at_current_time(response));
     }
 
     fn daemon_closes_listener_socket_on_sigterm() {
@@ -45,5 +50,12 @@ mod spec {
         sleep(1);
         assert!(!socket_path.exists());
         assert!(!pidfile_path.exists());
+    }
+
+    fn pomodoro_is_started_at_current_time(response : String) -> bool {
+        let expected_response = format!("Pomodoro started at {}", time::strftime("%F %H:%M:%S", &time::now()).unwrap());
+        // trim off seconds to allow some tolerance
+        let expected_response_without_seconds = &expected_response[0..expected_response.len()-3];
+        response.contains(expected_response_without_seconds)
     }
 }

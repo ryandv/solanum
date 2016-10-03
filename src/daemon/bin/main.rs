@@ -19,8 +19,6 @@ use std::error::Error;
 use std::io::{ Error as IOError, Write };
 use std::mem;
 use std::path::Path;
-use std::time;
-use std::thread;
 
 unsafe fn daemonize()
 {
