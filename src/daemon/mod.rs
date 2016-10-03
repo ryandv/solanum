@@ -46,6 +46,11 @@ impl Drop for CommandProcessor
 {
     fn drop(&mut self)
     {
-        fs::remove_file(Path::new("/tmp/solanum")).unwrap();
+        // TODO: log errors instead of just silently discarding.
+        // right now, silently discarding errors to ensure listener is recursively dropped.
+        match fs::remove_file(Path::new("/tmp/solanum")) {
+            Ok(_) => {},
+            Err(_) => {}
+        }
     }
 }

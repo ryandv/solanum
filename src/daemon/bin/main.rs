@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate log;
+extern crate log4rs;
 extern crate mio;
 extern crate mio_uds;
 extern crate nix;
@@ -10,9 +13,10 @@ use solanum::daemon;
 
 use nix::libc;
 
-use std::ffi::{CString};
+use std::ffi::CString;
 use std::fs;
-use std::io::{Error, Write};
+use std::error::Error;
+use std::io::{ Error as IOError, Write };
 use std::mem;
 use std::path::Path;
 use std::time;
@@ -62,7 +66,7 @@ unsafe fn daemonize()
     let chdir_result = libc::chdir(c_root);
 
     if chdir_result < 0 {
-        println!("Could not chdir to root: {}", Error::last_os_error());
+        println!("Could not chdir to root: {}", IOError::last_os_error());
         libc::exit(libc::EXIT_FAILURE);
     }
 
@@ -107,6 +111,8 @@ fn remove_pidfile()
 
 fn main()
 {
+    log4rs::init_file("config/log4rs.yaml", Default::default()).unwrap();
+
     unsafe { daemonize(); }
 
     let poll = Poll::new().unwrap();
@@ -125,6 +131,7 @@ fn main()
         match poll.poll(&mut events, None) {
             Ok(_) => {},
             Err(_) => {
+                error!("Could not poll for events");
                 clean_up(command_processor);
                 return;
             }
@@ -136,20 +143,20 @@ fn main()
                     match command_processor.handle_acceptor() {
                         Ok(_) => {
                         },
-                        // log: client errors?
-                        Err(_) => {
+                        Err(e) => {
+                            error!("{}", e.description());
                             clean_up(command_processor);
                             return;
                         }
                     }
                 },
                 Token(1) => {
-                    println!("Signal received");
+                    info!("Signal received");
                     clean_up(command_processor);
                     return;
                 }
                 _ => {
-                    //log: unhandled token!
+                    error!("Unhandled token received");
                     clean_up(command_processor);
                     return;
                 }

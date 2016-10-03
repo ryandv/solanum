@@ -5,6 +5,8 @@ authors = ["Ryan DV <rdevilla@uwaterloo.ca>"]
 
 [dependencies]
 libc = "0.2.16"
+log = "0.3"
+log4rs = { version = "0.4.8", features = ["yaml"] }
 mio = "0.6.0"
 mio-uds = "0.6.0"
 nix = "0.7.0"
