@@ -44,5 +44,6 @@ mod spec {
         signal::kill(pidstring.parse::<pid_t>().unwrap() as pid_t, signal::Signal::SIGTERM).unwrap();
         sleep(1);
         assert!(!socket_path.exists());
+        assert!(!pidfile_path.exists());
     }
 }

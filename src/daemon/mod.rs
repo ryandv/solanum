@@ -4,27 +4,48 @@ extern crate mio_uds;
 use self::mio::{ Poll, PollOpt, Ready, Token };
 use self::mio_uds::UnixListener;
 
-use std::io::Read;
+use std::fs;
+use std::io::{ Error, Read };
 use std::net::Shutdown;
+use std::path::Path;
 
-pub struct CommandProcessor {
+pub struct CommandProcessor
+{
     listener : UnixListener
 }
 
-impl CommandProcessor {
-    pub fn new(poll : &Poll) -> CommandProcessor
+impl CommandProcessor
+{
+    pub fn new(poll : &Poll) -> Result<CommandProcessor, Error>
     {
-        let listener = UnixListener::bind("/tmp/solanum").unwrap();
-        poll.register(&listener, Token(0), Ready::readable(), PollOpt::edge()).expect("could not register listener with poll");
+        let listener = try!(UnixListener::bind("/tmp/solanum"));
+        try!(poll.register(&listener, Token(0), Ready::readable(), PollOpt::edge()));
 
-        CommandProcessor { listener : listener }
+        Ok(CommandProcessor { listener : listener })
     }
 
-    pub fn handle_acceptor(&self)
+    pub fn handle_acceptor(&self) -> Result<(), Error>
     {
-        let (mut stream, _) = self.listener.accept().unwrap().unwrap();
-        let mut message = String::new();
-        stream.read_to_string(&mut message).unwrap();
-        stream.shutdown(Shutdown::Both).unwrap();
+        let accept_option = try!(self.listener.accept());
+        match accept_option {
+            Some((mut stream, _)) => {
+                let mut message = String::new();
+                try!(stream.read_to_string(&mut message));
+                try!(stream.shutdown(Shutdown::Both));
+                Ok(())
+            },
+            None => {
+                //log: tried to accept but no connection from other end
+                Ok(())
+            }
+        }
+    }
+}
+
+impl Drop for CommandProcessor
+{
+    fn drop(&mut self)
+    {
+        fs::remove_file(Path::new("/tmp/solanum")).unwrap();
     }
 }

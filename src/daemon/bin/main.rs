@@ -1,4 +1,3 @@
-extern crate libc;
 extern crate mio;
 extern crate mio_uds;
 extern crate nix;
@@ -7,9 +6,9 @@ extern crate solanum;
 use mio::{ Events, Poll, PollOpt, Ready, Token };
 use mio::unix::EventedFd;
 
-use nix::libc::{c_char, chdir, exit, EXIT_FAILURE, EXIT_SUCCESS, fork, getpid, pid_t, umask, setsid};
-
 use solanum::daemon;
+
+use nix::libc;
 
 use std::ffi::{CString};
 use std::fs;
@@ -21,56 +20,56 @@ use std::thread;
 
 unsafe fn daemonize()
 {
-    let child_pid : pid_t;
-    let daemon_pid : pid_t;
-    let sid : pid_t;
-    let c_root : *const c_char;
+    let child_pid : libc::pid_t;
+    let daemon_pid : libc::pid_t;
+    let sid : libc::pid_t;
+    let c_root : *const libc::c_char;
 
     let root = CString::new("/");
 
     match root {
         Ok(ref s) => c_root = s.as_ptr(),
-        Err(_) => exit(EXIT_FAILURE)
+        Err(_) => libc::exit(libc::EXIT_FAILURE)
     }
 
-    umask(0);
+    libc::umask(0);
 
-    child_pid = fork();
+    child_pid = libc::fork();
     if child_pid < 0 {
         println!("Could not fork child process");
-        exit(EXIT_FAILURE);
+        libc::exit(libc::EXIT_FAILURE);
     } else if child_pid > 0 {
         println!("Parent process ID: {}", child_pid);
-        exit(EXIT_SUCCESS);
+        libc::exit(libc::EXIT_SUCCESS);
     }
-    println!("Child process ID: {}", getpid());
+    println!("Child process ID: {}", libc::getpid());
 
-    sid = setsid();
+    sid = libc::setsid();
     if sid < 0 {
         println!("Could not setsid");
-        exit(EXIT_FAILURE);
+        libc::exit(libc::EXIT_FAILURE);
     }
 
-    daemon_pid = fork();
+    daemon_pid = libc::fork();
     if daemon_pid < 0 {
         println!("Could not fork grandchild process");
-        exit(EXIT_FAILURE);
+        libc::exit(libc::EXIT_FAILURE);
     } else if daemon_pid > 0 {
-        exit(EXIT_SUCCESS);
+        libc::exit(libc::EXIT_SUCCESS);
     }
-    println!("Grandchild process ID: {}", getpid());
+    println!("Grandchild process ID: {}", libc::getpid());
 
-    let chdir_result = chdir(c_root);
+    let chdir_result = libc::chdir(c_root);
 
     if chdir_result < 0 {
         println!("Could not chdir to root: {}", Error::last_os_error());
-        exit(EXIT_FAILURE);
+        libc::exit(libc::EXIT_FAILURE);
     }
 
     println!("Daemonized");
 
     let mut pid_file = fs::File::create(Path::new("/tmp/solanum.pid")).unwrap();
-    pid_file.write_fmt(format_args!("{}", getpid())).unwrap();
+    pid_file.write_fmt(format_args!("{}", libc::getpid())).unwrap();
 }
 
 unsafe fn register_signalfd_poll(poll : &Poll)
@@ -95,33 +94,64 @@ unsafe fn register_signalfd_poll(poll : &Poll)
     poll.register(&signalfd, Token(1), Ready::readable(), PollOpt::edge()).expect("could not register signalfd with poll");
 }
 
+fn clean_up(command_processor : daemon::CommandProcessor)
+{
+    drop(command_processor);
+    remove_pidfile();
+}
+
+fn remove_pidfile()
+{
+    fs::remove_file(Path::new("/tmp/solanum.pid")).unwrap();
+}
+
 fn main()
 {
     unsafe { daemonize(); }
 
     let poll = Poll::new().unwrap();
     let mut events = Events::with_capacity(1024);
-    let command_processor = daemon::CommandProcessor::new(&poll);
+    let command_processor = match daemon::CommandProcessor::new(&poll) {
+        Ok(processor) => processor,
+        Err(_) => {
+            remove_pidfile();
+            return;
+        }
+    };
 
     unsafe { register_signalfd_poll(&poll); }
 
     loop {
-        poll.poll(&mut events, None).unwrap();
+        match poll.poll(&mut events, None) {
+            Ok(_) => {},
+            Err(_) => {
+                clean_up(command_processor);
+                return;
+            }
+        }
 
         for event in events.iter() {
             match event.token() {
                 Token(0) => {
-                    command_processor.handle_acceptor();
+                    match command_processor.handle_acceptor() {
+                        Ok(_) => {
+                        },
+                        // log: client errors?
+                        Err(_) => {
+                            clean_up(command_processor);
+                            return;
+                        }
+                    }
                 },
                 Token(1) => {
                     println!("Signal received");
-                    drop(command_processor);
-                    fs::remove_file(Path::new("/tmp/solanum")).unwrap();
-                    thread::sleep(time::Duration::new(5, 0));
+                    clean_up(command_processor);
                     return;
                 }
                 _ => {
-                    panic!("Unhandled token");
+                    //log: unhandled token!
+                    clean_up(command_processor);
+                    return;
                 }
             }
         }
