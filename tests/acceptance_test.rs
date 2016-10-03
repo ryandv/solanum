@@ -19,25 +19,32 @@ mod spec {
 
     #[test]
     fn full_lifecycle_test() {
-        client_returns_error_when_daemon_is_not_active();
-        client_can_start_a_pomodoro();
+        let client = client::Client::new();
+        client_returns_error_when_daemon_is_not_active(&client);
+        client_can_start_a_pomodoro(&client);
+        client_can_abort_a_pomodoro(&client);
         daemon_closes_listener_socket_on_sigterm();
     }
 
-    fn client_returns_error_when_daemon_is_not_active() {
-        let client = client::Client {};
+    fn client_returns_error_when_daemon_is_not_active(client : &client::Client) {
         let response = client.send_message(String::from("START"));
         assert!(response.is_err());
     }
 
-    fn client_can_start_a_pomodoro() {
+    fn client_can_start_a_pomodoro(client : &client::Client) {
         process::Command::new("target/debug/solanumd").spawn().unwrap();
         sleep(1);
-        let client = client::Client {};
         let result = client.send_message(String::from("START"));
         assert!(result.is_ok());
         let response = result.unwrap();
         assert!(pomodoro_is_started_at_current_time(response));
+    }
+
+    fn client_can_abort_a_pomodoro(client : &client::Client) {
+        let result = client.send_message(String::from("STOP"));
+        assert!(result.is_ok());
+        let response = result.unwrap();
+        assert!(pomodoro_is_aborted(response));
     }
 
     fn daemon_closes_listener_socket_on_sigterm() {
@@ -57,5 +64,9 @@ mod spec {
         // trim off seconds to allow some tolerance
         let expected_response_without_seconds = &expected_response[0..expected_response.len()-3];
         response.contains(expected_response_without_seconds)
+    }
+
+    fn pomodoro_is_aborted(response : String) -> bool {
+        response.contains("Pomodoro aborted")
     }
 }
