@@ -13,7 +13,7 @@ use solanum::daemon;
 
 use std::ffi::{CString};
 use std::fs;
-use std::io::{Error, Read, Write};
+use std::io::{Error, Write};
 use std::mem;
 use std::path::Path;
 use std::time;
@@ -80,9 +80,17 @@ unsafe fn register_signalfd_poll(poll : &Poll)
 
     libc::sigemptyset(&mut block_mask as *mut libc::sigset_t);
     libc::sigaddset(&mut block_mask as *mut libc::sigset_t, libc::SIGTERM);
-    libc::pthread_sigmask(libc::SIG_BLOCK, &block_mask as *const libc::sigset_t, &mut old_block_mask as *mut libc::sigset_t);
+    libc::pthread_sigmask(
+        libc::SIG_BLOCK,
+        &block_mask as *const libc::sigset_t,
+        &mut old_block_mask as *mut libc::sigset_t
+    );
 
-    let rawfd = libc::signalfd(-1 as libc::c_int, &block_mask as *const libc::sigset_t, 0 as libc::c_int);
+    let rawfd = libc::signalfd(
+        -1 as libc::c_int,
+        &block_mask as *const libc::sigset_t,
+        0 as libc::c_int
+    );
     let signalfd = EventedFd(&rawfd);
     poll.register(&signalfd, Token(1), Ready::readable(), PollOpt::edge()).expect("could not register signalfd with poll");
 }
@@ -93,7 +101,7 @@ fn main()
 
     let poll = Poll::new().unwrap();
     let mut events = Events::with_capacity(1024);
-    let daemon = daemon::CommandProcessor::new(&poll);
+    let command_processor = daemon::CommandProcessor::new(&poll);
 
     unsafe { register_signalfd_poll(&poll); }
 
@@ -103,11 +111,11 @@ fn main()
         for event in events.iter() {
             match event.token() {
                 Token(0) => {
-                    daemon.handle_acceptor();
+                    command_processor.handle_acceptor();
                 },
                 Token(1) => {
                     println!("Signal received");
-                    drop(daemon);
+                    drop(command_processor);
                     fs::remove_file(Path::new("/tmp/solanum")).unwrap();
                     thread::sleep(time::Duration::new(5, 0));
                     return;

@@ -8,9 +8,7 @@ mod spec {
     use std::process;
     use std::fs;
     use std::io::Read;
-    use std::error::Error;
     use std::path::Path;
-    use std::result;
 
     use nix::libc::pid_t;
     use nix::sys::signal;
@@ -41,9 +39,9 @@ mod spec {
         let socket_path = Path::new("/tmp/solanum");
         let pidfile_path = Path::new("/tmp/solanum.pid");
         let mut pidfile = fs::File::open(pidfile_path).unwrap();
-        let mut pidString = String::new();
-        pidfile.read_to_string(&mut pidString).unwrap();
-        signal::kill(pidString.parse::<pid_t>().unwrap() as pid_t, signal::Signal::SIGTERM).unwrap();
+        let mut pidstring = String::new();
+        pidfile.read_to_string(&mut pidstring).unwrap();
+        signal::kill(pidstring.parse::<pid_t>().unwrap() as pid_t, signal::Signal::SIGTERM).unwrap();
         sleep(1);
         assert!(!socket_path.exists());
     }

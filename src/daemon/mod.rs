@@ -1,10 +1,10 @@
 extern crate mio;
 extern crate mio_uds;
 
-use self::mio::{Poll, PollOpt, Ready, Token};
-use self::mio_uds::{UnixListener, UnixStream};
+use self::mio::{ Poll, PollOpt, Ready, Token };
+use self::mio_uds::UnixListener;
 
-use std::io::{Error, Read};
+use std::io::Read;
 use std::net::Shutdown;
 
 pub struct CommandProcessor {
@@ -25,6 +25,6 @@ impl CommandProcessor {
         let (mut stream, _) = self.listener.accept().unwrap().unwrap();
         let mut message = String::new();
         stream.read_to_string(&mut message).unwrap();
-        stream.shutdown(Shutdown::Both);
+        stream.shutdown(Shutdown::Both).unwrap();
     }
 }
