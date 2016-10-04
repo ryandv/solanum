@@ -1,11 +1,10 @@
 extern crate mio;
 extern crate mio_uds;
 
-use daemon::CommandProcessor;
+use daemon::{ CanHandle, EventSubscriber };
 
-use self::mio::{ Evented, Events, Poll, PollOpt, Ready, Token };
+use self::mio::{ Evented, Events, Poll, PollOpt, Ready };
 
-use std::error::Error;
 use std::io;
 use std::result;
 
@@ -13,37 +12,6 @@ pub struct EventPoller<'a> {
     poll: Poll,
     events: Events,
     subscriptions: Vec<&'a CanHandle>
-}
-
-pub struct EventSubscriptionDescriptor<'a, E : ?Sized, F : Fn(&'a E) -> result::Result<io::Result<()>, io::Result<()>>> where E : 'a + Evented {
-    io: &'a E,
-    token: Token,
-    handler: F
-}
-
-pub trait CanHandle {
-    fn handle(&self) -> result::Result<io::Result<()>, io::Result<()>>;
-    fn token(&self) -> Token;
-}
-
-impl<'a, E : ?Sized, F : Fn(&'a E) -> result::Result<io::Result<()>, io::Result<()>>> EventSubscriptionDescriptor<'a, E, F> where E : 'a + Evented {
-    pub fn new(io: &'a E, token: Token, handler: F) -> EventSubscriptionDescriptor<'a, E, F> {
-        EventSubscriptionDescriptor {
-            io: io,
-            token: token,
-            handler: handler
-        }
-    }
-}
-
-impl<'a, E : ?Sized, F : Fn(&'a E) -> result::Result<io::Result<()>, io::Result<()>>> CanHandle for EventSubscriptionDescriptor<'a, E, F> where E : Evented {
-    fn handle(&self) -> result::Result<io::Result<()>, io::Result<()>> {
-        (self.handler)(&self.io)
-    }
-
-    fn token(&self) -> Token {
-        self.token
-    }
 }
 
 impl<'a> EventPoller<'a> {
@@ -56,7 +24,7 @@ impl<'a> EventPoller<'a> {
         })
     }
 
-    pub fn listen_for<'b, E: ?Sized, F: Fn(&'b E) -> result::Result<io::Result<()>, io::Result<()>>>(&mut self, descriptor: &'b EventSubscriptionDescriptor<'b, E, F>) -> io::Result<()>
+    pub fn listen_for<'b, E: ?Sized, F: Fn(&'b E) -> result::Result<io::Result<()>, io::Result<()>>>(&mut self, descriptor: &'b EventSubscriber<'b, E, F>) -> io::Result<()>
         where 'b : 'a,
               E : Evented,
               F : 'b
