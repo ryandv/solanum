@@ -6,7 +6,7 @@ extern crate time;
 use daemon::Command;
 use daemon::CommandResponder;
 
-use self::mio::{ Poll, PollOpt, Ready, Token };
+use self::mio::{ Evented, Poll, PollOpt, Ready, Token };
 use self::mio_uds::UnixListener;
 
 use std::fs;
@@ -23,10 +23,9 @@ pub struct CommandProcessor {
 }
 
 impl CommandProcessor {
-    pub fn new(poll : &Poll) -> io::Result<CommandProcessor>
+    pub fn new() -> io::Result<CommandProcessor>
     {
         let listener = try!(UnixListener::bind("/tmp/solanum"));
-        try!(poll.register(&listener, Token(0), Ready::readable(), PollOpt::edge()));
 
         let responder = CommandResponder::new();
 
@@ -69,5 +68,19 @@ impl Drop for CommandProcessor {
             Ok(_) => {},
             Err(_) => {}
         }
+    }
+}
+
+impl Evented for CommandProcessor {
+    fn register(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
+        self.listener.register(poll, token, interest, opts)
+    }
+
+    fn reregister(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
+        self.listener.reregister(poll, token, interest, opts)
+    }
+
+    fn deregister(&self, poll: &Poll) -> io::Result<()> {
+        self.listener.deregister(poll)
     }
 }

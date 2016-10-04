@@ -1,3 +1,5 @@
+#[macro_use]
+extern crate log;
 extern crate log4rs;
 extern crate mio;
 extern crate mio_uds;
@@ -9,6 +11,7 @@ use solanum::daemon;
 use nix::libc;
 
 use std::ffi::CString;
+use std::error::Error;
 use std::fs;
 use std::io;
 use std::io::Write;
@@ -94,10 +97,34 @@ fn listen_for_events<'a>() -> io::Result<()> {
     let signalfd : RawFd;
     unsafe { signalfd = open_signalfd(); }
     let evented_signalfd = mio::unix::EventedFd(&signalfd);
-    let signalfd_descriptor = daemon::EventSubscriptionDescriptor::new(&evented_signalfd, mio::Token(1), |_| { Ok(()) });
+
+    let command_processor = daemon::CommandProcessor::new().unwrap();
+    let command_processor_descriptor = daemon::EventSubscriptionDescriptor::new(
+        &command_processor,
+        mio::Token(0),
+        |processor| {
+            match processor.handle_acceptor() {
+                Ok(_) => { info!("Handled command"); Ok(Ok(())) }
+                Err(e) => {
+                    error!("{}", e.description());
+                    Err(Err(e))
+                }
+            }
+        }
+    );
+
+    let signalfd_descriptor = daemon::EventSubscriptionDescriptor::new(
+        &evented_signalfd,
+        mio::Token(1),
+        |_| {
+            info!("Signal received");
+            return Err(Ok(()));
+        }
+    );
 
     let mut event_processor = daemon::EventListener::new().unwrap();
     try!(event_processor.listen_for(&signalfd_descriptor));
+    try!(event_processor.listen_for(&command_processor_descriptor));
     event_processor.start_polling()
 }
 
