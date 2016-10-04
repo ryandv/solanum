@@ -9,6 +9,7 @@ mod spec {
     use std::process;
     use std::fs;
     use std::io::Read;
+    use std::ops::Add;
     use std::path::Path;
 
     use time;
@@ -23,6 +24,7 @@ mod spec {
         client_returns_error_when_daemon_is_not_active(&client);
         client_can_start_a_pomodoro(&client);
         client_can_abort_a_pomodoro(&client);
+        client_can_complete_a_pomodoro(&client);
         daemon_closes_listener_socket_on_sigterm();
     }
 
@@ -34,7 +36,9 @@ mod spec {
     fn client_can_start_a_pomodoro(client : &client::Client) {
         process::Command::new("target/debug/solanumd").spawn().unwrap();
         sleep(1);
+
         let result = client.send_message(String::from("START"));
+
         assert!(result.is_ok());
         let response = result.unwrap();
         assert!(pomodoro_is_started_at_current_time(response));
@@ -42,9 +46,19 @@ mod spec {
 
     fn client_can_abort_a_pomodoro(client : &client::Client) {
         let result = client.send_message(String::from("STOP"));
+
         assert!(result.is_ok());
         let response = result.unwrap();
         assert!(pomodoro_is_aborted(response));
+    }
+
+    fn client_can_complete_a_pomodoro(client : &client::Client) {
+        let start_response = client.send_message(String::from("START 1 1"));
+        assert!(start_response.is_ok());
+        sleep(1);
+        let complete_response = client.send_message(String::from("STOP"));
+
+        assert!(complete_response.is_ok());
     }
 
     fn daemon_closes_listener_socket_on_sigterm() {
@@ -53,8 +67,10 @@ mod spec {
         let mut pidfile = fs::File::open(pidfile_path).unwrap();
         let mut pidstring = String::new();
         pidfile.read_to_string(&mut pidstring).unwrap();
+
         signal::kill(pidstring.parse::<pid_t>().unwrap() as pid_t, signal::Signal::SIGTERM).unwrap();
         sleep(1);
+
         assert!(!socket_path.exists());
         assert!(!pidfile_path.exists());
     }
