@@ -6,4 +6,4 @@ pub mod event_listener;
 pub use self::command::Command;
 pub use self::command_processor::CommandProcessor;
 pub use self::command_responder::CommandResponder;
-pub use self::event_listener::EventListener;
+pub use self::event_listener::{ EventListener, EventSubscriptionDescriptor, CanHandle };

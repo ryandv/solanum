@@ -11,7 +11,8 @@ use self::mio_uds::UnixListener;
 
 use std::fs;
 use std::iter::FromIterator;
-use std::io::{ Error, Read, Write };
+use std::io;
+use std::io::{ Read, Write };
 use std::net::Shutdown;
 use std::path::Path;
 use std::vec::Vec;
@@ -22,7 +23,7 @@ pub struct CommandProcessor {
 }
 
 impl CommandProcessor {
-    pub fn new(poll : &Poll) -> Result<CommandProcessor, Error>
+    pub fn new(poll : &Poll) -> io::Result<CommandProcessor>
     {
         let listener = try!(UnixListener::bind("/tmp/solanum"));
         try!(poll.register(&listener, Token(0), Ready::readable(), PollOpt::edge()));
@@ -35,7 +36,7 @@ impl CommandProcessor {
         })
     }
 
-    pub fn handle_acceptor(&self) -> Result<(), Error>
+    pub fn handle_acceptor(&self) -> io::Result<()>
     {
         let accept_option = try!(self.listener.accept());
         match accept_option {

@@ -90,11 +90,14 @@ unsafe fn open_signalfd<'a> () -> RawFd {
 }
 
 fn listen_for_events<'a>() -> io::Result<()> {
-    let mut event_processor = daemon::EventListener::new().unwrap();
 
     let signalfd : RawFd;
     unsafe { signalfd = open_signalfd(); }
-    try!(event_processor.listen_for(&mio::unix::EventedFd(&signalfd), mio::Token(1)));
+    let evented_signalfd = mio::unix::EventedFd(&signalfd);
+    let signalfd_descriptor = daemon::EventSubscriptionDescriptor::new(&evented_signalfd, mio::Token(1), |_| { Ok(()) });
+
+    let mut event_processor = daemon::EventListener::new().unwrap();
+    try!(event_processor.listen_for(&signalfd_descriptor));
     event_processor.start_polling()
 }
 
