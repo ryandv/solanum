@@ -11,7 +11,7 @@ use self::mio_uds::UnixListener;
 
 use std::fs;
 use std::iter::FromIterator;
-use std::io::{ Error, ErrorKind, Read, Write };
+use std::io::{ Error, Read, Write };
 use std::net::Shutdown;
 use std::path::Path;
 use std::vec::Vec;

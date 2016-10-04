@@ -9,7 +9,6 @@ mod spec {
     use std::process;
     use std::fs;
     use std::io::Read;
-    use std::ops::Add;
     use std::path::Path;
 
     use time;

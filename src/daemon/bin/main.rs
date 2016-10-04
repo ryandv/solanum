@@ -1,13 +1,8 @@
-#[macro_use]
-extern crate log;
 extern crate log4rs;
 extern crate mio;
 extern crate mio_uds;
 extern crate nix;
 extern crate solanum;
-
-use mio::{ Events, Poll, PollOpt, Ready, Token };
-use mio::unix::EventedFd;
 
 use solanum::daemon;
 
@@ -15,9 +10,9 @@ use nix::libc;
 
 use std::ffi::CString;
 use std::fs;
-use std::error::Error;
 use std::io::{ Error as IOError, Write };
 use std::mem;
+use std::os::unix::io::RawFd;
 use std::path::Path;
 
 unsafe fn daemonize()
@@ -74,8 +69,7 @@ unsafe fn daemonize()
     pid_file.write_fmt(format_args!("{}", libc::getpid())).unwrap();
 }
 
-unsafe fn register_signalfd_poll(poll : &Poll)
-{
+unsafe fn open_signalfd<'a> () -> RawFd {
     let mut block_mask : libc::sigset_t = mem::uninitialized();
     let mut old_block_mask : libc::sigset_t = mem::uninitialized();
 
@@ -87,78 +81,31 @@ unsafe fn register_signalfd_poll(poll : &Poll)
         &mut old_block_mask as *mut libc::sigset_t
     );
 
-    let rawfd = libc::signalfd(
+    libc::signalfd(
         -1 as libc::c_int,
         &block_mask as *const libc::sigset_t,
         0 as libc::c_int
-    );
-    let signalfd = EventedFd(&rawfd);
-    poll.register(&signalfd, Token(1), Ready::readable(), PollOpt::edge()).expect("could not register signalfd with poll");
+    )
 }
 
-fn clean_up(command_processor : daemon::CommandProcessor)
-{
-    drop(command_processor);
-    remove_pidfile();
-}
+fn listen_for_events<'a>() {
+    let mut event_processor = daemon::EventListener::new().unwrap();
 
-fn remove_pidfile()
-{
-    fs::remove_file(Path::new("/tmp/solanum.pid")).unwrap();
+    let signalfd : RawFd;
+    unsafe { signalfd = open_signalfd(); }
+    match event_processor.listen_for(&mio::unix::EventedFd(&signalfd), mio::Token(1)) {
+        Ok(_) => { event_processor.start_polling() },
+        Err(_) => { drop(event_processor); return; }
+    };
 }
 
 fn main()
 {
+    // TODO: currently here because daemon chdir's to / and don't want to resolve the relative path
+    // at the moment.
     log4rs::init_file("config/log4rs.yaml", Default::default()).unwrap();
 
     unsafe { daemonize(); }
 
-    let poll = Poll::new().unwrap();
-    let mut events = Events::with_capacity(1024);
-    let command_processor = match daemon::CommandProcessor::new(&poll) {
-        Ok(processor) => processor,
-        Err(_) => {
-            remove_pidfile();
-            return;
-        }
-    };
-
-    unsafe { register_signalfd_poll(&poll); }
-
-    loop {
-        match poll.poll(&mut events, None) {
-            Ok(_) => {},
-            Err(_) => {
-                error!("Could not poll for events");
-                clean_up(command_processor);
-                return;
-            }
-        }
-
-        for event in events.iter() {
-            match event.token() {
-                Token(0) => {
-                    match command_processor.handle_acceptor() {
-                        Ok(_) => {
-                        },
-                        Err(e) => {
-                            error!("{}", e.description());
-                            clean_up(command_processor);
-                            return;
-                        }
-                    }
-                },
-                Token(1) => {
-                    info!("Signal received");
-                    clean_up(command_processor);
-                    return;
-                }
-                _ => {
-                    error!("Unhandled token received");
-                    clean_up(command_processor);
-                    return;
-                }
-            }
-        }
-    }
+    listen_for_events();
 }
