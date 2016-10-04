@@ -11,7 +11,6 @@ use solanum::daemon;
 use nix::libc;
 
 use std::ffi::CString;
-use std::error::Error;
 use std::fs;
 use std::io;
 use std::io::Write;
@@ -99,27 +98,14 @@ fn listen_for_events<'a>() -> io::Result<()> {
     let evented_signalfd = mio::unix::EventedFd(&signalfd);
 
     let command_processor = daemon::CommandProcessor::new().unwrap();
-    let command_processor_descriptor = daemon::EventSubscriber::new(
+    let command_processor_descriptor = daemon::CommandEventSubscriber::new(
         &command_processor,
-        mio::Token(0),
-        |processor| {
-            match processor.handle_acceptor() {
-                Ok(_) => { info!("Handled command"); Ok(Ok(())) }
-                Err(e) => {
-                    error!("{}", e.description());
-                    Err(Err(e))
-                }
-            }
-        }
+        mio::Token(0)
     );
 
-    let signalfd_descriptor = daemon::EventSubscriber::new(
+    let signalfd_descriptor = daemon::SignalEventSubscriber::new(
         &evented_signalfd,
-        mio::Token(1),
-        |_| {
-            info!("Signal received");
-            return Err(Ok(()));
-        }
+        mio::Token(1)
     );
 
     let mut event_processor = daemon::EventPoller::new().unwrap();

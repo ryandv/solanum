@@ -1,12 +1,11 @@
 extern crate mio;
 extern crate mio_uds;
 
-use daemon::{ CanHandle, EventSubscriber };
+use daemon::CanHandle;
 
-use self::mio::{ Evented, Events, Poll, PollOpt, Ready };
+use self::mio::{ Events, Poll, PollOpt, Ready };
 
 use std::io;
-use std::result;
 
 pub struct EventPoller<'a> {
     poll: Poll,
@@ -24,13 +23,11 @@ impl<'a> EventPoller<'a> {
         })
     }
 
-    pub fn listen_for<'b, E: ?Sized, F: Fn(&'b E) -> result::Result<io::Result<()>, io::Result<()>>>(&mut self, descriptor: &'b EventSubscriber<'b, E, F>) -> io::Result<()>
-        where 'b : 'a,
-              E : Evented,
-              F : 'b
+    pub fn listen_for<'b>(&mut self, subscriber: &'b CanHandle) -> io::Result<()>
+        where 'b : 'a
     {
-        self.subscriptions.push(descriptor);
-        self.poll.register(descriptor.io, descriptor.token, Ready::readable(), PollOpt::edge())
+        self.subscriptions.push(subscriber);
+        self.poll.register(subscriber.io(), subscriber.token(), Ready::readable(), PollOpt::edge())
     }
 
     /// Repeatedly poll for and handle incoming Events.

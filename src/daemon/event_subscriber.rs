@@ -1,4 +1,4 @@
-extern crate mio;
+/*extern crate mio;
 
 use daemon::CanHandle;
 
@@ -29,4 +29,9 @@ impl<'a, E : ?Sized, F : Fn(&'a E) -> result::Result<io::Result<()>, io::Result<
     fn token(&self) -> mio::Token {
         self.token
     }
+
+    fn io(&self) -> &mio::Evented {
+        &self.io
+    }
 }
+*/
