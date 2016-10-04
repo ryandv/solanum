@@ -42,7 +42,6 @@ impl EventListener
                 Ok(_) => {},
                 Err(_) => {
                     error!("Could not poll for events");
-                    EventListener::clean_up();
                     return Err(io::Error::new(io::ErrorKind::InvalidInput, "Could not poll for events"));
                 }
             }
@@ -55,28 +54,20 @@ impl EventListener
                             },
                             Err(e) => {
                                 error!("{}", e.description());
-                                EventListener::clean_up();
                                 return Err(e);
                             }
                         }
                     },
                     Token(1) => {
                         info!("Signal received");
-                        EventListener::clean_up();
                         return Ok(());
                     }
                     _ => {
                         error!("Unhandled token received");
-                        EventListener::clean_up();
                         return Err(io::Error::new(io::ErrorKind::InvalidInput, "Received event from unknown source"));
                     }
                 }
             }
         }
-    }
-
-    fn clean_up()
-    {
-        fs::remove_file(Path::new("/tmp/solanum.pid")).unwrap();
     }
 }

@@ -10,7 +10,8 @@ use nix::libc;
 
 use std::ffi::CString;
 use std::fs;
-use std::io::{ Error as IOError, Write };
+use std::io;
+use std::io::Write;
 use std::mem;
 use std::os::unix::io::RawFd;
 use std::path::Path;
@@ -59,7 +60,7 @@ unsafe fn daemonize()
     let chdir_result = libc::chdir(c_root);
 
     if chdir_result < 0 {
-        println!("Could not chdir to root: {}", IOError::last_os_error());
+        println!("Could not chdir to root: {}", io::Error::last_os_error());
         libc::exit(libc::EXIT_FAILURE);
     }
 
@@ -88,15 +89,13 @@ unsafe fn open_signalfd<'a> () -> RawFd {
     )
 }
 
-fn listen_for_events<'a>() {
+fn listen_for_events<'a>() -> io::Result<()> {
     let mut event_processor = daemon::EventListener::new().unwrap();
 
     let signalfd : RawFd;
     unsafe { signalfd = open_signalfd(); }
-    match event_processor.listen_for(&mio::unix::EventedFd(&signalfd), mio::Token(1)) {
-        Ok(_) => { event_processor.start_polling() },
-        Err(_) => { drop(event_processor); return; }
-    };
+    try!(event_processor.listen_for(&mio::unix::EventedFd(&signalfd), mio::Token(1)));
+    event_processor.start_polling()
 }
 
 fn main()
@@ -107,5 +106,7 @@ fn main()
 
     unsafe { daemonize(); }
 
-    listen_for_events();
+    listen_for_events().unwrap();
+
+    fs::remove_file(Path::new("/tmp/solanum.pid")).unwrap();
 }
