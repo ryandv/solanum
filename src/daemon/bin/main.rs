@@ -122,7 +122,7 @@ fn listen_for_events<'a>() -> io::Result<()> {
         }
     );
 
-    let mut event_processor = daemon::EventListener::new().unwrap();
+    let mut event_processor = daemon::EventPoller::new().unwrap();
     try!(event_processor.listen_for(&signalfd_descriptor));
     try!(event_processor.listen_for(&command_processor_descriptor));
     event_processor.start_polling()

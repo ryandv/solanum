@@ -9,7 +9,7 @@ use std::error::Error;
 use std::io;
 use std::result;
 
-pub struct EventListener<'a> {
+pub struct EventPoller<'a> {
     poll: Poll,
     events: Events,
     subscriptions: Vec<&'a CanHandle>
@@ -46,10 +46,10 @@ impl<'a, E : ?Sized, F : Fn(&'a E) -> result::Result<io::Result<()>, io::Result<
     }
 }
 
-impl<'a> EventListener<'a> {
-    pub fn new() -> io::Result<EventListener<'a>> {
+impl<'a> EventPoller<'a> {
+    pub fn new() -> io::Result<EventPoller<'a>> {
         let poll = Poll::new().unwrap();
-        Ok(EventListener {
+        Ok(EventPoller {
             poll: poll,
             events: Events::with_capacity(1024),
             subscriptions: Vec::new()
