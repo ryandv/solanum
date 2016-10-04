@@ -3,6 +3,9 @@ extern crate mio_uds;
 extern crate regex;
 extern crate time;
 
+use daemon::Command;
+use daemon::CommandResponder;
+
 use self::mio::{ Poll, PollOpt, Ready, Token };
 use self::mio_uds::UnixListener;
 
@@ -13,38 +16,9 @@ use std::net::Shutdown;
 use std::path::Path;
 use std::vec::Vec;
 
-enum Command {
-    Start(time::Tm, time::Duration, time::Duration),
-    Stop
-}
-
 pub struct CommandProcessor {
     listener : UnixListener,
     responder : CommandResponder
-}
-
-impl Command {
-    pub fn from_string(string : String) -> Result<Command, Error> {
-        let start_re = regex::Regex::new(r"^START(?: ((?:\w+,)*(?:\w+)) )?( ?:(\d+) (\d+))?").unwrap();
-        if start_re.is_match(string.as_str()) {
-            match start_re.captures(string.as_str()) {
-                Some(caps) => {
-                    let work_time_argument : i64 = caps.at(2).unwrap_or("1500").parse().unwrap_or(1500);
-                    let break_time_argument : i64 = caps.at(3).unwrap_or("300").parse().unwrap_or(300);
-                    let work_time = time::Duration::seconds(work_time_argument);
-                    let break_time = time::Duration::seconds(break_time_argument);
-                    Ok(Command::Start(time::now(), work_time, break_time))
-                },
-                None => {
-                    Ok(Command::Start(time::now(), time::Duration::seconds(1500), time::Duration::seconds(300)))
-                }
-            }
-        } else if string == "STOP" {
-            Ok(Command::Stop)
-        } else {
-            Err(Error::new(ErrorKind::InvalidInput, format!("command not recognized: {}", string)))
-        }
-    }
 }
 
 impl CommandProcessor {
@@ -94,57 +68,5 @@ impl Drop for CommandProcessor {
             Ok(_) => {},
             Err(_) => {}
         }
-    }
-}
-
-struct CommandResponder {
-}
-
-impl CommandResponder {
-    pub fn new() -> CommandResponder {
-        CommandResponder {}
-    }
-
-    pub fn respond(&self, command : Command) -> String {
-        match command {
-            Command::Start(start_time, _, _) => self.handle_start(&start_time),
-            Command::Stop => self.handle_stop()
-        }
-    }
-
-    fn handle_start(&self, start_time : &time::Tm) -> String {
-        format!("Pomodoro started at {}", time::strftime("%F %H:%M:%S", &start_time).unwrap())
-    }
-
-    fn handle_stop(&self) -> String {
-        String::from("Pomodoro aborted")
-    }
-}
-
-#[cfg(test)]
-mod test {
-
-    use super::Command;
-    use super::CommandResponder;
-    use super::time;
-
-    #[test]
-    fn responds_to_start_commands_with_the_current_time()
-    {
-        let responder = CommandResponder::new();
-
-        let response = responder.respond(Command::Start(time::strptime("2020-01-01 00:00:00", "%F %H:%M:%S").unwrap(), time::Duration::seconds(42), time::Duration::seconds(42)));
-
-        assert!(response == "Pomodoro started at 2020-01-01 00:00:00");
-    }
-
-    #[test]
-    fn responds_to_stop_commands()
-    {
-        let responder = CommandResponder::new();
-
-        let response = responder.respond(Command::Stop);
-
-        assert!(response.contains("Pomodoro aborted"));
     }
 }
