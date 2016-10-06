@@ -8,8 +8,6 @@ extern crate solanum;
 
 use solanum::daemon;
 
-use self::mio_uds::UnixListener;
-
 use nix::libc;
 
 use std::ffi::CString;
@@ -98,14 +96,12 @@ fn listen_for_events<'a>() -> io::Result<()> {
     let signalfd : RawFd;
     unsafe { signalfd = open_signalfd(); }
     let evented_signalfd = mio::unix::EventedFd(&signalfd);
-    let listener = try!(UnixListener::bind("/tmp/solanum"));
 
-    let command_processor = daemon::CommandProcessor::new().unwrap();
+    let command_processor = daemon::CommandProcessor::new();
     let command_processor_descriptor = daemon::CommandEventSubscriber::new(
-        listener,
         command_processor,
         mio::Token(0)
-    );
+    ).unwrap();
 
     let signalfd_descriptor = daemon::SignalEventSubscriber::new(
         evented_signalfd,

@@ -5,11 +5,13 @@ use daemon::{ CanHandle, Command, CommandProcessor };
 
 use self::mio_uds::UnixListener;
 
+use std::fs;
 use std::io;
 use std::result;
 use std::io::{ Read, Write };
 use std::iter::FromIterator;
 use std::net::Shutdown;
+use std::path::Path;
 
 pub struct CommandEventSubscriber {
     io: UnixListener,
@@ -18,12 +20,13 @@ pub struct CommandEventSubscriber {
 }
 
 impl CommandEventSubscriber {
-    pub fn new(io: UnixListener, command_processor: CommandProcessor, token: mio::Token) -> CommandEventSubscriber {
-        CommandEventSubscriber {
-            io: io,
+    pub fn new(command_processor: CommandProcessor, token: mio::Token) -> io::Result<CommandEventSubscriber> {
+        let listener = try!(UnixListener::bind("/tmp/solanum"));
+        Ok(CommandEventSubscriber {
+            io: listener,
             command_processor: command_processor,
             token: token
-        }
+        })
     }
 }
 
@@ -39,7 +42,7 @@ impl CanHandle for CommandEventSubscriber {
                         let message = String::from_utf8(codepoints).unwrap();
                         let command = Command::from_string(message).unwrap();
 
-                        let response = self.command_processor.handle_acceptor(command);
+                        let response = self.command_processor.handle_command(command);
 
                         stream.write_all(response.as_bytes());
                         stream.shutdown(Shutdown::Both).unwrap();
@@ -65,5 +68,17 @@ impl CanHandle for CommandEventSubscriber {
 
     fn io(&self) -> &mio::Evented {
         &self.io
+    }
+}
+
+impl Drop for CommandEventSubscriber {
+    fn drop(&mut self)
+    {
+        // TODO: log errors instead of just silently discarding.
+        // right now, silently discarding errors to ensure listener is recursively dropped.
+        match fs::remove_file(Path::new("/tmp/solanum")) {
+            Ok(_) => {},
+            Err(_) => {}
+        }
     }
 }

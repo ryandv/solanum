@@ -4,48 +4,63 @@ extern crate regex;
 extern crate time;
 
 use daemon::Command;
-use daemon::CommandResponder;
 
 use self::mio::{ Evented, Poll, PollOpt, Ready, Token };
 use self::mio_uds::UnixListener;
 
-use std::fs;
-use std::iter::FromIterator;
 use std::io;
-use std::io::{ Read, Write };
-use std::net::Shutdown;
-use std::path::Path;
-use std::vec::Vec;
 
 pub struct CommandProcessor {
-    responder : CommandResponder
 }
 
 impl CommandProcessor {
-    pub fn new() -> io::Result<CommandProcessor>
+    pub fn new() -> CommandProcessor
     {
-
-        let responder = CommandResponder::new();
-
-        Ok(CommandProcessor {
-            responder : responder
-        })
+        CommandProcessor {
+        }
     }
 
-    pub fn handle_acceptor(&self, command: Command) -> String
+    pub fn handle_command(&self, command: Command) -> String
     {
-        self.responder.respond(command)
+        match command {
+            Command::Start(start_time, _, _) => self.handle_start(&start_time),
+            Command::Stop => self.handle_stop()
+        }
+    }
+
+    fn handle_start(&self, start_time : &time::Tm) -> String {
+        format!("Pomodoro started at {}", time::strftime("%F %H:%M:%S", &start_time).unwrap())
+    }
+
+    fn handle_stop(&self) -> String {
+        String::from("Pomodoro aborted")
     }
 }
 
-impl Drop for CommandProcessor {
-    fn drop(&mut self)
+#[cfg(test)]
+mod test {
+    use daemon::Command;
+
+    use super::CommandProcessor;
+    use super::time;
+
+    #[test]
+    fn responds_to_start_commands_with_the_current_time()
     {
-        // TODO: log errors instead of just silently discarding.
-        // right now, silently discarding errors to ensure listener is recursively dropped.
-        match fs::remove_file(Path::new("/tmp/solanum")) {
-            Ok(_) => {},
-            Err(_) => {}
-        }
+        let processor = CommandProcessor::new();
+
+        let response = processor.handle_command(Command::Start(time::strptime("2020-01-01 00:00:00", "%F %H:%M:%S").unwrap(), time::Duration::seconds(42), time::Duration::seconds(42)));
+
+        assert!(response == "Pomodoro started at 2020-01-01 00:00:00");
+    }
+
+    #[test]
+    fn responds_to_stop_commands()
+    {
+        let processor = CommandProcessor::new();
+
+        let response = processor.handle_command(Command::Stop);
+
+        assert!(response.contains("Pomodoro aborted"));
     }
 }
