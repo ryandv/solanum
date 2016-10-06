@@ -6,12 +6,12 @@ use std::io;
 use std::result;
 
 pub struct SignalEventSubscriber<'a> {
-    io: &'a mio::unix::EventedFd<'a>,
+    io: mio::unix::EventedFd<'a>,
     token: mio::Token
 }
 
 impl<'a> SignalEventSubscriber<'a> {
-    pub fn new(io: &'a mio::unix::EventedFd, token: mio::Token) -> SignalEventSubscriber<'a> {
+    pub fn new(io: mio::unix::EventedFd, token: mio::Token) -> SignalEventSubscriber {
         SignalEventSubscriber {
             io: io,
             token: token
@@ -30,7 +30,7 @@ impl<'a> CanHandle for SignalEventSubscriber<'a> {
     }
 
     fn io(&self) -> &mio::Evented {
-        self.io
+        &self.io
     }
 
 }

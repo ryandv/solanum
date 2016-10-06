@@ -99,12 +99,12 @@ fn listen_for_events<'a>() -> io::Result<()> {
 
     let command_processor = daemon::CommandProcessor::new().unwrap();
     let command_processor_descriptor = daemon::CommandEventSubscriber::new(
-        &command_processor,
+        command_processor,
         mio::Token(0)
     );
 
     let signalfd_descriptor = daemon::SignalEventSubscriber::new(
-        &evented_signalfd,
+        evented_signalfd,
         mio::Token(1)
     );
 

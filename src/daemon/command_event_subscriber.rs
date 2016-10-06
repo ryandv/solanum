@@ -6,13 +6,13 @@ use std::error::Error;
 use std::io;
 use std::result;
 
-pub struct CommandEventSubscriber<'a> {
-    io: &'a CommandProcessor,
+pub struct CommandEventSubscriber {
+    io: CommandProcessor,
     token: mio::Token
 }
 
-impl<'a> CommandEventSubscriber<'a> {
-    pub fn new(io: &'a CommandProcessor, token: mio::Token) -> CommandEventSubscriber<'a> {
+impl CommandEventSubscriber {
+    pub fn new(io: CommandProcessor, token: mio::Token) -> CommandEventSubscriber {
         CommandEventSubscriber {
             io: io,
             token: token
@@ -20,7 +20,7 @@ impl<'a> CommandEventSubscriber<'a> {
     }
 }
 
-impl<'a> CanHandle for CommandEventSubscriber<'a> {
+impl CanHandle for CommandEventSubscriber {
     fn handle(&self) -> result::Result<io::Result<()>, io::Result<()>> {
         match self.io.handle_acceptor() {
             Ok(_) => { info!("Handled command"); Ok(Ok(())) }
@@ -36,6 +36,6 @@ impl<'a> CanHandle for CommandEventSubscriber<'a> {
     }
 
     fn io(&self) -> &mio::Evented {
-        self.io
+        &self.io
     }
 }
