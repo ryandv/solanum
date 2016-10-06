@@ -52,12 +52,13 @@ mod spec {
     }
 
     fn client_can_complete_a_pomodoro(client : &client::Client) {
-        let start_response = client.send_message(String::from("START 1 1"));
-        assert!(start_response.is_ok());
+        let start_response = client.send_message(String::from("START 1 1")).unwrap();
         sleep(1);
-        let complete_response = client.send_message(String::from("STOP"));
+        client.send_message(String::from("STOP")).unwrap();
 
-        assert!(complete_response.is_ok());
+        let list_response = client.send_message(String::from("LIST")).unwrap();
+
+        assert!(list_response.contains("COMPLETED"));
     }
 
     fn daemon_closes_listener_socket_on_sigterm() {

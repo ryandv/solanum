@@ -5,7 +5,8 @@ use std::io::{ Error, ErrorKind };
 
 pub enum Command {
     Start(time::Tm, time::Duration, time::Duration),
-    Stop
+    Stop,
+    List
 }
 
 impl Command {
@@ -26,6 +27,8 @@ impl Command {
             }
         } else if string == "STOP" {
             Ok(Command::Stop)
+        } else if string == "LIST" {
+            Ok(Command::List)
         } else {
             Err(Error::new(ErrorKind::InvalidInput, format!("command not recognized: {}", string)))
         }
