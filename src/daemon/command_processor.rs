@@ -5,6 +5,7 @@ extern crate regex;
 extern crate time;
 
 use daemon::Command;
+use daemon::PomodoroQueryMapper;
 
 use self::mio::{ Evented, Poll, PollOpt, Ready, Token };
 use self::mio_uds::UnixListener;
@@ -32,29 +33,13 @@ impl CommandProcessor {
     }
 
     fn handle_start(&self, start_time : &time::Tm, work_duration: time::Duration, break_duration: time::Duration) -> String {
-        let conn = postgres::Connection::connect("postgres://postgres@localhost:5432/solanum_test", postgres::SslMode::None).unwrap();
-        let work_length = work_duration.num_seconds();
-        let break_length = break_duration.num_seconds();
-        conn.execute(
-            "INSERT INTO pomodoros(
-                work_start_time,
-                work_end_time,
-                break_start_time,
-                break_end_time,
-                work_length,
-                break_length,
-                tags,
-                status
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-            &[&start_time.to_timespec(), &None as &Option<time::Timespec>, &None as &Option<time::Timespec>, &None as &Option<time::Timespec>, &work_length as &i64, &break_length as &i64, &String::from(""), &String::from("STARTED")]
-            ).unwrap();
+        let new_start_time = PomodoroQueryMapper::create_pomodoro(start_time, work_duration, break_duration).
+            and_then(|_| PomodoroQueryMapper::get_most_recent_pomodoro_start_time());
 
-        let new_pomodoro: time::Timespec = (&conn).
-            query("SELECT work_start_time FROM pomodoros ORDER BY work_start_time DESC LIMIT 1", &[]).
-            unwrap().
-            get(0).
-            get(0);
-        format!("Pomodoro started at {}", time::strftime("%F %H:%M:%S", &time::at(new_pomodoro)).unwrap())
+        match new_start_time {
+            Ok(time) => format!("Pomodoro started at {}", time::strftime("%F %H:%M:%S", &time).unwrap()),
+            Err(_) => format!("Failed to start pomodoro.")
+        }
     }
 
     fn handle_stop(&self) -> String {
