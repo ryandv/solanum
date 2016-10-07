@@ -1,14 +1,8 @@
-extern crate postgres;
-extern crate mio;
-extern crate mio_uds;
-extern crate regex;
 extern crate time;
 
 use daemon::Command;
+use daemon::Pomodoro;
 use daemon::PomodoroQueryMapper;
-
-use self::mio::{ Evented, Poll, PollOpt, Ready, Token };
-use self::mio_uds::UnixListener;
 
 use std::io;
 use std::string;
@@ -33,54 +27,37 @@ impl CommandProcessor {
     }
 
     fn handle_start(&self, start_time : &time::Tm, work_duration: time::Duration, break_duration: time::Duration) -> String {
-        let new_start_time = PomodoroQueryMapper::create_pomodoro(start_time, work_duration, break_duration).
-            and_then(|_| PomodoroQueryMapper::get_most_recent_pomodoro_start_time());
+        let new_pomodoro = PomodoroQueryMapper::create_pomodoro(start_time, work_duration, break_duration).
+            and_then(|_| PomodoroQueryMapper::get_most_recent_pomodoro());
 
-        match new_start_time {
-            Ok(time) => format!("Pomodoro started at {}", time::strftime("%F %H:%M:%S", &time).unwrap()),
+        match new_pomodoro {
+            Ok(pomodoro) => format!("Pomodoro started at {}", time::strftime("%F %H:%M:%S", &pomodoro.work_start_time).unwrap()),
             Err(_) => format!("Failed to start pomodoro.")
         }
     }
 
     fn handle_stop(&self) -> String {
-        let conn = postgres::Connection::connect("postgres://postgres@localhost:5432/solanum_test", postgres::SslMode::None).unwrap();
-        let rows = &conn.
-            query("SELECT id, work_start_time, work_end_time, break_start_time, break_end_time, work_length, break_length, status FROM pomodoros ORDER BY work_start_time DESC LIMIT 1", &[]).
-            unwrap();
+        let result = PomodoroQueryMapper::get_most_recent_pomodoro().and_then(|pomodoro| {
+            PomodoroQueryMapper::stop_pomodoro(pomodoro.id)
+        });
 
-        let last_pomodoro = rows.get(0);
-
-        let id: i32 = last_pomodoro.get(0);
-        let work_start_time: time::Timespec = last_pomodoro.get(1);
-        let work_end_time: Option<time::Timespec> = last_pomodoro.get(2);
-        let break_start_time: Option<time::Timespec> = last_pomodoro.get(3);
-        let break_end_time: Option<time::Timespec> = last_pomodoro.get(4);
-        let work_length: i64 = last_pomodoro.get(5);
-        let break_length: i64 = last_pomodoro.get(6);
-        let status: String = last_pomodoro.get(7);
-
-        &conn.execute(
-            "UPDATE pomodoros SET status = $2
-            WHERE id = $1",
-                &[&id, &String::from("COMPLETED")]
-                ).unwrap();
-
-        String::from("Pomodoro aborted")
+        match result {
+            Ok(_) => String::from("Pomodoro aborted"),
+            Err(_) => String::from("Failed to abort pomodoro")
+        }
     }
 
     fn handle_list(&self) -> String {
-        let conn = postgres::Connection::connect("postgres://postgres@localhost:5432/solanum_test", postgres::SslMode::None).unwrap();
-        let response = (&conn).
-            query("SELECT work_start_time, status, tags FROM pomodoros ORDER BY work_start_time DESC LIMIT 5", &[]).
-            unwrap().
-            into_iter().
-            fold(String::from(""), |acc, pomodoro| {
-                let start_time: time::Timespec = pomodoro.get(0);
-                let status: String = pomodoro.get(1);
-                let tags: String = pomodoro.get(2);
-                acc + &format!("[{}]: {} ({})\n", time::strftime("%F %H:%M:%S", &time::at(start_time)).unwrap(), status, tags)
-            });
-        response
+        let last_five_pomodoros = PomodoroQueryMapper::list_most_recent_pomodoros(5).and_then(|pomodoros| {
+            Ok(pomodoros.into_iter().fold(String::from(""), |acc, pomodoro| {
+                acc + &format!("[{}]: {} ({})\n", time::strftime("%F %H:%M:%S", &pomodoro.work_start_time).unwrap(), pomodoro.status, pomodoro.tags)
+            }))
+        });
+
+        match last_five_pomodoros {
+            Ok(pomodoro_descriptions) => pomodoro_descriptions,
+            Err(_) => String::from("Unable to list pomodoros")
+        }
     }
 }
 

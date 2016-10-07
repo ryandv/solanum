@@ -11,5 +11,5 @@ pub use self::command::Command;
 pub use self::command_event_subscriber::CommandEventSubscriber;
 pub use self::command_processor::CommandProcessor;
 pub use self::event_poller::EventPoller;
-pub use self::pomodoro_query_mapper::PomodoroQueryMapper;
+pub use self::pomodoro_query_mapper::{ Pomodoro, PomodoroQueryMapper };
 pub use self::signal_event_subscriber::SignalEventSubscriber;
