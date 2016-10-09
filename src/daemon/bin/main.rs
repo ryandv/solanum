@@ -91,27 +91,30 @@ unsafe fn open_signalfd<'a> () -> RawFd {
     )
 }
 
+struct DaemonContainer {
+}
+
 fn listen_for_events<'a>() -> io::Result<()> {
 
     let signalfd : RawFd;
     unsafe { signalfd = open_signalfd(); }
-    let evented_signalfd = mio::unix::EventedFd(&signalfd);
 
     let command_processor = daemon::CommandProcessor::new();
-    let command_processor_descriptor = daemon::CommandEventSubscriber::new(
+    let command_event_subscriber = daemon::CommandEventSubscriber::new(
         command_processor,
         mio::Token(0)
     ).unwrap();
 
-    let signalfd_descriptor = daemon::SignalEventSubscriber::new(
+    let evented_signalfd = mio::unix::EventedFd(&signalfd);
+    let signalfd_subscriber = daemon::SignalEventSubscriber::new(
         evented_signalfd,
         mio::Token(1)
     );
 
-    let mut event_processor = daemon::EventPoller::new().unwrap();
-    try!(event_processor.listen_for(&signalfd_descriptor));
-    try!(event_processor.listen_for(&command_processor_descriptor));
-    event_processor.start_polling()
+    let mut event_poller = daemon::EventPoller::new().unwrap();
+    try!(event_poller.listen_for(&signalfd_subscriber));
+    try!(event_poller.listen_for(&command_event_subscriber));
+    event_poller.start_polling()
 }
 
 fn main()
