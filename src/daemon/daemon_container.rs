@@ -1,9 +1,9 @@
-extern crate mio;
+use daemon::io::mio;
 
-use daemon::EventPoller;
-use daemon::CommandEventSubscriber;
 use daemon::CommandProcessor;
-use daemon::SignalEventSubscriber;
+use daemon::io::CommandEventSubscriber;
+use daemon::io::SignalEventSubscriber;
+use daemon::io::EventPoller;
 
 use std::io;
 use std::os::unix::io::RawFd;

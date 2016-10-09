@@ -1,4 +1,4 @@
-extern crate mio;
+use super::mio;
 
 use std::io;
 use std::result;

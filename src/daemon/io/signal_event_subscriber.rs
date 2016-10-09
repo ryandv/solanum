@@ -1,9 +1,9 @@
-extern crate mio;
-
-use daemon::CanHandle;
+use daemon::io::CanHandle;
 
 use std::io;
 use std::result;
+
+use super::mio;
 
 pub struct SignalEventSubscriber<'a> {
     io: mio::unix::EventedFd<'a>,

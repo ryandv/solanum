@@ -1,11 +1,8 @@
-extern crate mio;
-extern crate mio_uds;
-
-use daemon::CanHandle;
-
-use self::mio::{ Events, Poll, PollOpt, Ready };
+use daemon::io::CanHandle;
 
 use std::io;
+
+use super::mio::{ Events, Poll, PollOpt, Ready };
 
 pub struct EventPoller<'a> {
     poll: Poll,

@@ -1,11 +1,7 @@
 extern crate time;
 
 use daemon::Command;
-use daemon::Pomodoro;
 use daemon::PomodoroQueryMapper;
-
-use std::io;
-use std::string;
 
 pub struct CommandProcessor {
 }
@@ -37,9 +33,8 @@ impl CommandProcessor {
     }
 
     fn handle_stop(&self) -> String {
-        let result = PomodoroQueryMapper::get_most_recent_pomodoro().and_then(|pomodoro| {
-            PomodoroQueryMapper::stop_pomodoro(pomodoro.id)
-        });
+        let result = PomodoroQueryMapper::get_most_recent_pomodoro().
+            and_then(|pomodoro| PomodoroQueryMapper::stop_pomodoro(pomodoro.id) );
 
         match result {
             Ok(_) => String::from("Pomodoro aborted"),
@@ -48,11 +43,11 @@ impl CommandProcessor {
     }
 
     fn handle_list(&self) -> String {
-        let last_five_pomodoros = PomodoroQueryMapper::list_most_recent_pomodoros(5).and_then(|pomodoros| {
-            Ok(pomodoros.into_iter().fold(String::from(""), |acc, pomodoro| {
-                acc + &format!("[{}]: {} ({})\n", time::strftime("%F %H:%M:%S", &pomodoro.work_start_time).unwrap(), pomodoro.status, pomodoro.tags)
-            }))
-        });
+        let last_five_pomodoros = PomodoroQueryMapper::list_most_recent_pomodoros(5).
+            and_then(|pomodoros| Ok(
+                    pomodoros.into_iter().fold(String::from(""), |acc, pomodoro| {
+                        acc + &format!("[{}]: {} ({})\n", time::strftime("%F %H:%M:%S", &pomodoro.work_start_time).unwrap(), pomodoro.status, pomodoro.tags)
+                    })));
 
         match last_five_pomodoros {
             Ok(pomodoro_descriptions) => pomodoro_descriptions,

@@ -1,7 +1,9 @@
 extern crate mio;
 extern crate mio_uds;
 
-use daemon::{ CanHandle, Command, CommandProcessor };
+use daemon::Command;
+use daemon::CommandProcessor;
+use daemon::io::CanHandle;
 
 use self::mio_uds::UnixListener;
 use self::mio_uds::UnixStream;
@@ -39,7 +41,7 @@ impl CommandEventSubscriber {
 
         let response = self.command_processor.handle_command(command);
 
-        stream.write_all(response.as_bytes());
+        try!(stream.write_all(response.as_bytes()));
         try!(stream.shutdown(Shutdown::Both));
         info!("Handled command");
         Ok(())
