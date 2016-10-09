@@ -1,8 +1,6 @@
 #[macro_use]
 extern crate log;
 extern crate log4rs;
-extern crate mio;
-extern crate mio_uds;
 extern crate nix;
 extern crate solanum;
 
@@ -91,30 +89,13 @@ unsafe fn open_signalfd<'a> () -> RawFd {
     )
 }
 
-struct DaemonContainer {
-}
-
 fn listen_for_events<'a>() -> io::Result<()> {
 
     let signalfd : RawFd;
     unsafe { signalfd = open_signalfd(); }
 
-    let command_processor = daemon::CommandProcessor::new();
-    let command_event_subscriber = daemon::CommandEventSubscriber::new(
-        command_processor,
-        mio::Token(0)
-    ).unwrap();
-
-    let evented_signalfd = mio::unix::EventedFd(&signalfd);
-    let signalfd_subscriber = daemon::SignalEventSubscriber::new(
-        evented_signalfd,
-        mio::Token(1)
-    );
-
-    let mut event_poller = daemon::EventPoller::new().unwrap();
-    try!(event_poller.listen_for(&signalfd_subscriber));
-    try!(event_poller.listen_for(&command_event_subscriber));
-    event_poller.start_polling()
+    let mut container = daemon::DaemonContainer::new(&signalfd).unwrap();
+    container.start()
 }
 
 fn main()
