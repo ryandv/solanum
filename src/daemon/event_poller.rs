@@ -15,7 +15,7 @@ pub struct EventPoller<'a> {
 
 impl<'a> EventPoller<'a> {
     pub fn new() -> io::Result<EventPoller<'a>> {
-        let poll = Poll::new().unwrap();
+        let poll = try!(Poll::new());
         Ok(EventPoller {
             poll: poll,
             events: Events::with_capacity(1024),

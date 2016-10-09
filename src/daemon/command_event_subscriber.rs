@@ -4,11 +4,12 @@ extern crate mio_uds;
 use daemon::{ CanHandle, Command, CommandProcessor };
 
 use self::mio_uds::UnixListener;
+use self::mio_uds::UnixStream;
 
 use std::fs;
 use std::io;
 use std::result;
-use std::io::{ Read, Write };
+use std::io::{ Error, ErrorKind, Read, Write };
 use std::iter::FromIterator;
 use std::net::Shutdown;
 use std::path::Path;
@@ -28,6 +29,21 @@ impl CommandEventSubscriber {
             token: token
         })
     }
+
+    fn process_stream(&self, stream: &mut UnixStream) -> io::Result<()> {
+        let mut buf : [u8; 1024] = [0; 1024];
+        try!(stream.read(&mut buf));
+        let codepoints = Vec::from_iter(buf.to_vec().into_iter().take_while(|codepoint| *codepoint != (0 as u8)));
+        let message = try!(String::from_utf8(codepoints).map_err(|_| Error::new(ErrorKind::InvalidInput, "failed to parse UTF-8 command")));
+        let command = try!(Command::from_string(message));
+
+        let response = self.command_processor.handle_command(command);
+
+        stream.write_all(response.as_bytes());
+        try!(stream.shutdown(Shutdown::Both));
+        info!("Handled command");
+        Ok(())
+    }
 }
 
 impl CanHandle for CommandEventSubscriber {
@@ -36,19 +52,7 @@ impl CanHandle for CommandEventSubscriber {
             Ok(acceptor) => {
                 match acceptor {
                     Some((mut stream, _)) => {
-                        let mut buf : [u8; 1024] = [0; 1024];
-                        stream.read(&mut buf).unwrap();
-                        let codepoints = Vec::from_iter(buf.to_vec().into_iter().take_while(|codepoint| *codepoint != (0 as u8)));
-                        let message = String::from_utf8(codepoints).unwrap();
-                        let command = Command::from_string(message).unwrap();
-
-                        let response = self.command_processor.handle_command(command);
-
-                        stream.write_all(response.as_bytes());
-                        stream.shutdown(Shutdown::Both).unwrap();
-                        info!("Handled command");
-
-                        Ok(Ok(()))
+                        Ok(self.process_stream(&mut stream))
                     }
                     None => {
                         warn!("Expected connection but got none");
