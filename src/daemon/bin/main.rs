@@ -66,6 +66,10 @@ unsafe fn daemonize()
 
     println!("Daemonized");
 
+    libc::close(libc::STDIN_FILENO);
+    libc::close(libc::STDOUT_FILENO);
+    libc::close(libc::STDERR_FILENO);
+
     let mut pid_file = fs::File::create(Path::new("/tmp/solanum.pid")).unwrap();
     pid_file.write_fmt(format_args!("{}", libc::getpid())).unwrap();
 }
