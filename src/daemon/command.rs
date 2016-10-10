@@ -13,7 +13,8 @@ use std::error::Error;
 pub enum Command {
     Start(chrono::datetime::DateTime<UTC>, chrono::Duration, chrono::Duration),
     Stop,
-    List
+    List,
+    Status
 }
 
 #[derive(Debug)]
@@ -61,6 +62,8 @@ impl Command {
             Ok(Command::Stop)
         } else if string == "LIST" {
             Ok(Command::List)
+        } else if string == "STATUS" {
+            Ok(Command::Status)
         } else {
             Err(InvalidCommandString::new(string))
         }
@@ -93,6 +96,16 @@ mod test {
         let command = Command::from_string(current_time, string);
 
         assert!(command.unwrap() == Command::Start(current_time, Duration::seconds(23), Duration::seconds(42)));
+    }
+
+    #[test]
+    fn can_parse_status_commands() {
+        let current_time = "2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap();
+        let string = String::from("STATUS");
+
+        let command = Command::from_string(current_time, string);
+
+        assert!(command.unwrap() == Command::Status);
     }
 
     #[test]
