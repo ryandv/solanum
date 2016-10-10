@@ -1,4 +1,7 @@
-extern crate time;
+extern crate chrono;
+
+use self::chrono::datetime::DateTime;
+use self::chrono::offset::utc::UTC;
 
 use daemon::Pomodoro;
 
@@ -6,7 +9,7 @@ pub struct PomodoroTransitioner {
 }
 
 impl PomodoroTransitioner {
-    pub fn transition(current_time: time::Tm, pomodoro: Pomodoro) -> Pomodoro {
+    pub fn transition(current_time: DateTime<UTC>, pomodoro: Pomodoro) -> Pomodoro {
         if current_time >= pomodoro.work_start_time + pomodoro.work_length {
             Pomodoro {
                 id: pomodoro.id,
@@ -37,8 +40,11 @@ impl PomodoroTransitioner {
 
 #[cfg(test)]
 mod test {
-    use super::time;
     use super::PomodoroTransitioner;
+
+    use super::chrono::Duration;
+    use super::chrono::datetime::DateTime;
+    use super::chrono::offset::utc::UTC;
 
     use daemon::Pomodoro;
 
@@ -46,16 +52,16 @@ mod test {
     fn aborts_a_pomodoro_transitioned_before_work_duration_has_elapsed() {
         let pomodoro = Pomodoro {
             id: 0,
-            work_start_time: time::strptime("2000-01-01 00:00:00", "%F %H:%M:%S").unwrap(),
+            work_start_time: "2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap(),
             work_end_time: None,
             break_start_time: None,
             break_end_time: None,
-            work_length: time::Duration::seconds(5),
-            break_length: time::Duration::seconds(5),
+            work_length: Duration::seconds(5),
+            break_length: Duration::seconds(5),
             tags: String::from(""),
             status: String::from("INPROGRESS")
         };
-        let transition_time = time::strptime("2000-01-01 00:00:01", "%F %H:%M:%S").unwrap();
+        let transition_time = "2000-01-01T00:00:01+00:00".parse::<DateTime<UTC>>().unwrap();
         let updated_pomodoro = PomodoroTransitioner::transition(transition_time, pomodoro);
 
         assert!(updated_pomodoro.status == "ABORTED")
@@ -65,19 +71,19 @@ mod test {
     fn completes_a_pomodoro_transitioned_after_work_duration_has_elapsed() {
         let pomodoro = Pomodoro {
             id: 0,
-            work_start_time: time::strptime("2000-01-01 00:00:00", "%F %H:%M:%S").unwrap(),
+            work_start_time: "2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap(),
             work_end_time: None,
             break_start_time: None,
             break_end_time: None,
-            work_length: time::Duration::seconds(5),
-            break_length: time::Duration::seconds(5),
+            work_length: Duration::seconds(5),
+            break_length: Duration::seconds(5),
             tags: String::from(""),
             status: String::from("INPROGRESS")
         };
-        let transition_time = time::strptime("2000-01-01 00:00:05", "%F %H:%M:%S").unwrap();
+        let transition_time = "2000-01-01T00:00:05+00:00".parse::<DateTime<UTC>>().unwrap();
         let updated_pomodoro = PomodoroTransitioner::transition(transition_time, pomodoro);
 
         assert!(updated_pomodoro.status == "COMPLETED");
-        assert!(updated_pomodoro.work_end_time.unwrap().to_timespec() == transition_time.to_timespec())
+        assert!(updated_pomodoro.work_end_time == Some(transition_time))
     }
 }

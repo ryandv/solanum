@@ -1,4 +1,7 @@
-extern crate time;
+extern crate chrono;
+
+use self::chrono::datetime::DateTime;
+use self::chrono::offset::utc::UTC;
 
 use daemon::Command;
 use daemon::PomodoroQueryMapper;
@@ -22,12 +25,12 @@ impl CommandProcessor {
         }
     }
 
-    fn handle_start(&self, start_time : &time::Tm, work_duration: time::Duration, break_duration: time::Duration) -> String {
+    fn handle_start(&self, start_time : &DateTime<UTC>, work_duration: chrono::Duration, break_duration: chrono::Duration) -> String {
         let new_pomodoro = PomodoroQueryMapper::create_pomodoro(start_time, work_duration, break_duration).
             and_then(|_| PomodoroQueryMapper::get_most_recent_pomodoro());
 
         match new_pomodoro {
-            Ok(pomodoro) => format!("Pomodoro started at {}", time::strftime("%F %H:%M:%S", &pomodoro.work_start_time).unwrap()),
+            Ok(pomodoro) => format!("Pomodoro started at {}", pomodoro.work_start_time.format("%F %H:%M:%S").to_string()),
             Err(_) => format!("Failed to start pomodoro.")
         }
     }
@@ -46,7 +49,7 @@ impl CommandProcessor {
         let last_five_pomodoros = PomodoroQueryMapper::list_most_recent_pomodoros(5).
             and_then(|pomodoros| Ok(
                     pomodoros.into_iter().fold(String::from(""), |acc, pomodoro| {
-                        acc + &format!("[{}]: {} ({})\n", time::strftime("%F %H:%M:%S", &pomodoro.work_start_time).unwrap(), pomodoro.status, pomodoro.tags)
+                        acc + &format!("[{}]: {} ({})\n", pomodoro.work_start_time.format("%F %H:%M:%S").to_string(), pomodoro.status, pomodoro.tags)
                     })));
 
         match last_five_pomodoros {
@@ -61,7 +64,10 @@ mod test {
     use daemon::Command;
 
     use super::CommandProcessor;
-    use super::time;
+    use super::chrono::Duration;
+    use super::chrono::TimeZone;
+    use super::chrono::datetime::DateTime;
+    use super::chrono::offset::utc::UTC;
 
     // IGNORED pending resolution of test db teardown
     #[ignore]
@@ -70,7 +76,7 @@ mod test {
     {
         let processor = CommandProcessor::new();
 
-        let response = processor.handle_command(Command::Start(time::strptime("2000-01-01 00:00:00", "%F %H:%M:%S").unwrap(), time::Duration::seconds(42), time::Duration::seconds(42)));
+        let response = processor.handle_command(Command::Start("2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap(), Duration::seconds(42), Duration::seconds(42)));
         println!("&UHJNM {}", response);
 
         assert!(response == "Pomodoro started at 2000-01-01 00:00:00");

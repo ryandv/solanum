@@ -1,21 +1,19 @@
-extern crate solanum;
-extern crate time;
-extern crate nix;
-
 #[cfg(test)]
 mod spec {
-    use solanum::client;
+    extern crate chrono;
+    extern crate solanum;
+    extern crate nix;
+
+    use self::solanum::client;
 
     use std::process;
     use std::fs;
     use std::io::Read;
     use std::path::Path;
 
-    use time;
-
-    use nix::libc::pid_t;
-    use nix::sys::signal;
-    use nix::unistd::{sleep};
+    use self::nix::libc::pid_t;
+    use self::nix::sys::signal;
+    use self::nix::unistd::{sleep};
 
     #[test]
     #[ignore]
@@ -77,8 +75,9 @@ mod spec {
     }
 
     fn pomodoro_is_started_at_current_time(response : String) -> bool {
-        let expected_response = format!("Pomodoro started at {}", time::strftime("%F %H:%M:%S", &time::now()).unwrap());
+        let expected_response = format!("Pomodoro started at {}", chrono::offset::utc::UTC::now().format("%F %H:%M:%S").to_string());
         // trim off seconds to allow some tolerance
+        println!("{}", response);
         let expected_response_without_seconds = &expected_response[0..expected_response.len()-3];
         response.contains(expected_response_without_seconds)
     }

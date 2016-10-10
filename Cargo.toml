@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Ryan DV <rdevilla@uwaterloo.ca>"]
 
 [dependencies]
+chrono = "0.2.25"
 libc = "0.2.16"
 log = "0.3"
 log4rs = { version = "0.4.8", features = ["yaml"] }
@@ -11,8 +12,7 @@ mio = "0.6.0"
 mio-uds = "0.6.0"
 nix = "0.7.0"
 regex = "0.1"
-postgres = { version = "0.11", features = ["time"] }
-time = "0.1"
+postgres = { version = "0.11", features = ["chrono"] }
 
 [profile.dev]
 debug = true
