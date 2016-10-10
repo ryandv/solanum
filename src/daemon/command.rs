@@ -4,7 +4,10 @@ extern crate regex;
 use self::chrono::datetime::DateTime;
 use self::chrono::offset::utc::UTC;
 
-use std::io::{ Error, ErrorKind };
+use std::fmt::Display;
+use std::fmt::Error as FmtError;
+use std::fmt::Formatter;
+use std::error::Error;
 
 #[derive(PartialEq, Eq)]
 pub enum Command {
@@ -13,13 +16,37 @@ pub enum Command {
     List
 }
 
+#[derive(Debug)]
+pub struct InvalidCommandString {
+    command_string: String
+}
+
+impl InvalidCommandString {
+    pub fn new(command_string: String) -> InvalidCommandString {
+        InvalidCommandString {
+            command_string: format!("Invalid command: {}", command_string)
+        }
+    }
+}
+
+impl Display for InvalidCommandString {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+        write!(f, "{}", self.command_string)
+    }
+}
+
+impl Error for InvalidCommandString {
+    fn description(&self) -> &str {
+        &self.command_string
+    }
+}
+
 impl Command {
-    pub fn from_string(current_time: DateTime<UTC>, string : String) -> Result<Command, Error> {
+    pub fn from_string(current_time: DateTime<UTC>, string : String) -> Result<Command, InvalidCommandString> {
         let start_re = regex::Regex::new(r"^START(?: tags ((?:\w+,)*(?:\w+)))?(?: (\d+) (\d+))?").unwrap();
         if start_re.is_match(string.as_str()) {
             match start_re.captures(string.as_str()) {
                 Some(caps) => {
-                    println!("{:?}", caps);
                     let work_time_argument : i64 = caps.at(2).unwrap_or("1500").parse().unwrap_or(1500);
                     let break_time_argument : i64 = caps.at(3).unwrap_or("300").parse().unwrap_or(300);
                     let work_time = chrono::Duration::seconds(work_time_argument);
@@ -35,7 +62,7 @@ impl Command {
         } else if string == "LIST" {
             Ok(Command::List)
         } else {
-            Err(Error::new(ErrorKind::InvalidInput, format!("command not recognized: {}", string)))
+            Err(InvalidCommandString::new(string))
         }
     }
 }
@@ -66,5 +93,15 @@ mod test {
         let command = Command::from_string(current_time, string);
 
         assert!(command.unwrap() == Command::Start(current_time, Duration::seconds(23), Duration::seconds(42)));
+    }
+
+    #[test]
+    fn returns_error_when_given_invalid_string() {
+        let current_time = "2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap();
+        let string = String::from("FOOBAR");
+
+        let command = Command::from_string(current_time, string);
+
+        assert!(command.is_err())
     }
 }

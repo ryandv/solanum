@@ -6,6 +6,7 @@ use self::chrono::offset::utc::UTC;
 use daemon::Command;
 use daemon::PomodoroTransitioner;
 use daemon::PomodoroQueryMapper;
+use daemon::pomodoro::PomodoroStatus;
 
 pub struct CommandProcessor {
 }
@@ -27,6 +28,18 @@ impl CommandProcessor {
     }
 
     fn handle_start(&self, start_time : &DateTime<UTC>, work_duration: chrono::Duration, break_duration: chrono::Duration) -> String {
+        let last_pomodoro = PomodoroQueryMapper::get_most_recent_pomodoro().
+            map(|pomodoro| {
+                let now = UTC::now();
+                let mut updated_pomodoro = PomodoroTransitioner::transition(now, &pomodoro);
+                if updated_pomodoro.status == PomodoroStatus::BreakPending {
+                    updated_pomodoro = PomodoroTransitioner::transition(now, &updated_pomodoro);
+                    updated_pomodoro = PomodoroTransitioner::transition(now, &updated_pomodoro);
+                }
+                updated_pomodoro
+            }).
+            and_then(|pomodoro| PomodoroQueryMapper::update_pomodoro(pomodoro.id, pomodoro) );
+
         let new_pomodoro = PomodoroQueryMapper::create_pomodoro(start_time, work_duration, break_duration).
             and_then(|_| PomodoroQueryMapper::get_most_recent_pomodoro());
 

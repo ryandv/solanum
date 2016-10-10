@@ -16,13 +16,12 @@ mod spec {
     use self::nix::unistd::{sleep};
 
     #[test]
-    #[ignore]
     fn full_lifecycle_test() {
         let client = client::Client::new();
         client_returns_error_when_daemon_is_not_active(&client);
         client_can_start_a_pomodoro(&client);
         client_can_abort_a_pomodoro(&client);
-        client_can_complete_a_pomodoro(&client);
+        client_can_complete_a_pomodoro_work_period(&client);
         daemon_closes_listener_socket_on_sigterm();
     }
 
@@ -50,14 +49,14 @@ mod spec {
         assert!(pomodoro_is_aborted(response));
     }
 
-    fn client_can_complete_a_pomodoro(client : &client::Client) {
+    fn client_can_complete_a_pomodoro_work_period(client : &client::Client) {
         let start_response = client.send_message(String::from("START 1 1")).unwrap();
         sleep(1);
         client.send_message(String::from("STOP")).unwrap();
 
         let list_response = client.send_message(String::from("LIST")).unwrap();
 
-        assert!(list_response.contains("Completed"));
+        assert!(list_response.contains("BreakPending"));
     }
 
     fn daemon_closes_listener_socket_on_sigterm() {
