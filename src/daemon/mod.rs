@@ -13,5 +13,4 @@ pub use self::command_processor::CommandProcessor;
 
 pub use self::pomodoro_query_mapper::PomodoroQueryMapper;
 
-pub use self::pomodoro::Pomodoro;
 pub use self::pomodoro_transitioner::PomodoroTransitioner;

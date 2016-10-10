@@ -4,7 +4,8 @@ extern crate postgres;
 use self::chrono::datetime::DateTime;
 use self::chrono::offset::utc::UTC;
 
-use daemon::Pomodoro;
+use daemon::pomodoro::Pomodoro;
+use daemon::pomodoro::PomodoroStatus;
 
 use self::postgres::rows;
 
@@ -31,7 +32,7 @@ impl PomodoroQueryMapper {
                 tags,
                 status
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-            &[&start_time, &None as &Option<DateTime<UTC>>, &None as &Option<DateTime<UTC>>, &None as &Option<DateTime<UTC>>, &work_length as &i64, &break_length as &i64, &String::from(""), &String::from("STARTED")]
+            &[&start_time, &None as &Option<DateTime<UTC>>, &None as &Option<DateTime<UTC>>, &None as &Option<DateTime<UTC>>, &work_length as &i64, &break_length as &i64, &String::from(""), &PomodoroStatus::IN_PROGRESS.to_string()]
             );
 
         match result {
@@ -82,7 +83,7 @@ impl PomodoroQueryMapper {
                 break_end_time: break_end_time,
                 work_length: chrono::Duration::seconds(work_length),
                 break_length: chrono::Duration::seconds(break_length),
-                status: status,
+                status: PomodoroStatus::from(status),
                 tags: tags
             }
         })))

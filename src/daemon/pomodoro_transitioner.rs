@@ -3,14 +3,15 @@ extern crate chrono;
 use self::chrono::datetime::DateTime;
 use self::chrono::offset::utc::UTC;
 
-use daemon::Pomodoro;
+use daemon::pomodoro::Pomodoro;
+use daemon::pomodoro::PomodoroStatus;
 
 pub struct PomodoroTransitioner {
 }
 
 impl PomodoroTransitioner {
     pub fn transition(current_time: DateTime<UTC>, pomodoro: Pomodoro) -> Pomodoro {
-        if pomodoro.status == String::from("BREAKPENDING") {
+        if pomodoro.status == PomodoroStatus::BREAK_PENDING {
             Pomodoro {
                 id: pomodoro.id,
                 work_start_time: pomodoro.work_start_time,
@@ -20,9 +21,9 @@ impl PomodoroTransitioner {
                 work_length: pomodoro.work_length,
                 break_length: pomodoro.break_length,
                 tags: pomodoro.tags,
-                status: String::from("BREAK")
+                status: PomodoroStatus::BREAK
             }
-        } else if pomodoro.status == String::from("BREAK") {
+        } else if pomodoro.status == PomodoroStatus::BREAK {
             Pomodoro {
                 id: pomodoro.id,
                 work_start_time: pomodoro.work_start_time,
@@ -32,7 +33,7 @@ impl PomodoroTransitioner {
                 work_length: pomodoro.work_length,
                 break_length: pomodoro.break_length,
                 tags: pomodoro.tags,
-                status: String::from("COMPLETED")
+                status: PomodoroStatus::COMPLETED
             }
         } else {
             if current_time >= pomodoro.work_start_time + pomodoro.work_length {
@@ -45,7 +46,7 @@ impl PomodoroTransitioner {
                     work_length: pomodoro.work_length,
                     break_length: pomodoro.break_length,
                     tags: pomodoro.tags,
-                    status: String::from("BREAKPENDING")
+                    status: PomodoroStatus::BREAK_PENDING
                 }
             } else {
                 Pomodoro {
@@ -57,7 +58,7 @@ impl PomodoroTransitioner {
                     work_length: pomodoro.work_length,
                     break_length: pomodoro.break_length,
                     tags: pomodoro.tags,
-                    status: String::from("ABORTED")
+                    status: PomodoroStatus::ABORTED
                 }
             }
         }
@@ -72,7 +73,8 @@ mod test {
     use super::chrono::datetime::DateTime;
     use super::chrono::offset::utc::UTC;
 
-    use daemon::Pomodoro;
+    use daemon::pomodoro::Pomodoro;
+    use daemon::pomodoro::PomodoroStatus;
 
     #[test]
     fn aborts_a_pomodoro_transitioned_before_work_duration_has_elapsed() {
@@ -85,13 +87,13 @@ mod test {
             work_length: Duration::seconds(5),
             break_length: Duration::seconds(5),
             tags: String::from(""),
-            status: String::from("INPROGRESS")
+            status: PomodoroStatus::IN_PROGRESS
         };
         let transition_time = "2000-01-01T00:00:01+00:00".parse::<DateTime<UTC>>().unwrap();
 
         let updated_pomodoro = PomodoroTransitioner::transition(transition_time, pomodoro);
 
-        assert!(updated_pomodoro.status == "ABORTED");
+        assert!(updated_pomodoro.status == PomodoroStatus::ABORTED);
         assert!(updated_pomodoro.work_end_time == Some(transition_time));
     }
 
@@ -106,13 +108,13 @@ mod test {
             work_length: Duration::seconds(5),
             break_length: Duration::seconds(5),
             tags: String::from(""),
-            status: String::from("INPROGRESS")
+            status: PomodoroStatus::IN_PROGRESS
         };
         let transition_time = "2000-01-01T00:00:05+00:00".parse::<DateTime<UTC>>().unwrap();
 
         let updated_pomodoro = PomodoroTransitioner::transition(transition_time, pomodoro);
 
-        assert!(updated_pomodoro.status == "BREAKPENDING");
+        assert!(updated_pomodoro.status == PomodoroStatus::BREAK_PENDING);
         assert!(updated_pomodoro.work_end_time == Some(transition_time))
     }
 
@@ -127,13 +129,13 @@ mod test {
             work_length: Duration::seconds(5),
             break_length: Duration::seconds(5),
             tags: String::from(""),
-            status: String::from("BREAKPENDING")
+            status: PomodoroStatus::BREAK_PENDING
         };
         let transition_time = "2000-01-01T00:00:10+00:00".parse::<DateTime<UTC>>().unwrap();
 
         let updated_pomodoro = PomodoroTransitioner::transition(transition_time, pomodoro);
 
-        assert!(updated_pomodoro.status == "BREAK");
+        assert!(updated_pomodoro.status == PomodoroStatus::BREAK);
         assert!(updated_pomodoro.break_start_time == Some(transition_time))
     }
 
@@ -148,13 +150,13 @@ mod test {
             work_length: Duration::seconds(5),
             break_length: Duration::seconds(5),
             tags: String::from(""),
-            status: String::from("BREAK")
+            status: PomodoroStatus::BREAK
         };
         let transition_time = "2000-01-01T00:00:15+00:00".parse::<DateTime<UTC>>().unwrap();
 
         let updated_pomodoro = PomodoroTransitioner::transition(transition_time, pomodoro);
 
-        assert!(updated_pomodoro.status == "COMPLETED");
+        assert!(updated_pomodoro.status == PomodoroStatus::COMPLETED);
         assert!(updated_pomodoro.break_end_time == Some(transition_time))
     }
 }
