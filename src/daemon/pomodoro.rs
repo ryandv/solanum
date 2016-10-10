@@ -19,21 +19,21 @@ pub struct Pomodoro {
 
 #[derive(PartialEq, Eq)]
 pub enum PomodoroStatus {
-    IN_PROGRESS,
-    ABORTED,
-    BREAK_PENDING,
-    BREAK,
-    COMPLETED
+    InProgress,
+    Aborted,
+    BreakPending,
+    Break,
+    Completed
 }
 
 impl fmt::Display for PomodoroStatus {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            PomodoroStatus::IN_PROGRESS => write!(f, "IN_PROGRESS"),
-            PomodoroStatus::ABORTED => write!(f, "ABORTED"),
-            PomodoroStatus::BREAK_PENDING => write!(f, "BREAK_PENDING"),
-            PomodoroStatus::BREAK => write!(f, "BREAK"),
-            PomodoroStatus::COMPLETED => write!(f, "COMPLETED"),
+            PomodoroStatus::InProgress => write!(f, "InProgress"),
+            PomodoroStatus::Aborted => write!(f, "Aborted"),
+            PomodoroStatus::BreakPending => write!(f, "BreakPending"),
+            PomodoroStatus::Break => write!(f, "Break"),
+            PomodoroStatus::Completed => write!(f, "Completed"),
         }
     }
 }
@@ -41,11 +41,11 @@ impl fmt::Display for PomodoroStatus {
 impl From<String> for PomodoroStatus {
     fn from(string: String) -> PomodoroStatus {
         match string.as_str() {
-            "IN_PROGRESS" => PomodoroStatus::IN_PROGRESS,
-            "BREAK_PENDING" => PomodoroStatus::BREAK_PENDING,
-            "BREAK" => PomodoroStatus::BREAK,
-            "COMPLETED" => PomodoroStatus::COMPLETED,
-            _ => PomodoroStatus::ABORTED
+            "InProgress" => PomodoroStatus::InProgress,
+            "BreakPending" => PomodoroStatus::BreakPending,
+            "Break" => PomodoroStatus::Break,
+            "Completed" => PomodoroStatus::Completed,
+            _ => PomodoroStatus::Aborted
         }
     }
 }

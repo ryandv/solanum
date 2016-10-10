@@ -32,7 +32,7 @@ impl PomodoroQueryMapper {
                 tags,
                 status
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-            &[&start_time, &None as &Option<DateTime<UTC>>, &None as &Option<DateTime<UTC>>, &None as &Option<DateTime<UTC>>, &work_length as &i64, &break_length as &i64, &String::from(""), &PomodoroStatus::IN_PROGRESS.to_string()]
+            &[&start_time, &None as &Option<DateTime<UTC>>, &None as &Option<DateTime<UTC>>, &None as &Option<DateTime<UTC>>, &work_length as &i64, &break_length as &i64, &String::from(""), &PomodoroStatus::InProgress.to_string()]
             );
 
         match result {
@@ -95,7 +95,7 @@ impl PomodoroQueryMapper {
             execute(
                 "UPDATE pomodoros SET status = $2
                     WHERE id = $1",
-                    &[&id, &String::from("COMPLETED")]
+                    &[&id, &String::from("Completed")]
             ).
             or_else(|err| { error!("{}", err.description()); Err(()) }).
             map(|_| ())

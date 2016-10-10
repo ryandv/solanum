@@ -57,7 +57,7 @@ mod spec {
 
         let list_response = client.send_message(String::from("LIST")).unwrap();
 
-        assert!(list_response.contains("COMPLETED"));
+        assert!(list_response.contains("Completed"));
     }
 
     fn daemon_closes_listener_socket_on_sigterm() {
