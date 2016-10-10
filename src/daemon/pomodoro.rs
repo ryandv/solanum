@@ -5,6 +5,7 @@ use self::chrono::offset::utc::UTC;
 
 use std::fmt;
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Pomodoro {
     pub id: i32,
     pub work_start_time: chrono::datetime::DateTime<UTC>,
@@ -17,7 +18,7 @@ pub struct Pomodoro {
     pub status: PomodoroStatus
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PomodoroStatus {
     InProgress,
     Aborted,

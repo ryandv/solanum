@@ -11,8 +11,8 @@ pub struct PomodoroTransitioner {
 
 impl PomodoroTransitioner {
     pub fn transition(current_time: DateTime<UTC>, pomodoro: Pomodoro) -> Pomodoro {
-        if pomodoro.status == PomodoroStatus::BreakPending {
-            Pomodoro {
+        match pomodoro.status {
+            PomodoroStatus::BreakPending => Pomodoro {
                 id: pomodoro.id,
                 work_start_time: pomodoro.work_start_time,
                 work_end_time: pomodoro.work_end_time,
@@ -22,9 +22,8 @@ impl PomodoroTransitioner {
                 break_length: pomodoro.break_length,
                 tags: pomodoro.tags,
                 status: PomodoroStatus::Break
-            }
-        } else if pomodoro.status == PomodoroStatus::Break {
-            Pomodoro {
+            },
+            PomodoroStatus::Break => Pomodoro {
                 id: pomodoro.id,
                 work_start_time: pomodoro.work_start_time,
                 work_end_time: pomodoro.work_end_time,
@@ -34,9 +33,10 @@ impl PomodoroTransitioner {
                 break_length: pomodoro.break_length,
                 tags: pomodoro.tags,
                 status: PomodoroStatus::Completed
-            }
-        } else {
-            if current_time >= pomodoro.work_start_time + pomodoro.work_length {
+            },
+            PomodoroStatus::Aborted => pomodoro,
+            PomodoroStatus::Completed => pomodoro,
+            PomodoroStatus::InProgress => if current_time >= pomodoro.work_start_time + pomodoro.work_length {
                 Pomodoro {
                     id: pomodoro.id,
                     work_start_time: pomodoro.work_start_time,
@@ -158,5 +158,46 @@ mod test {
 
         assert!(updated_pomodoro.status == PomodoroStatus::Completed);
         assert!(updated_pomodoro.break_end_time == Some(transition_time))
+    }
+
+    #[test]
+    fn does_nothing_to_an_aborted_pomodoro() {
+        let pomodoro = Pomodoro {
+            id: 0,
+            work_start_time: "2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap(),
+            work_end_time: Some("2000-01-01T00:00:01+00:00".parse::<DateTime<UTC>>().unwrap()),
+            break_start_time: None,
+            break_end_time: None,
+            work_length: Duration::seconds(5),
+            break_length: Duration::seconds(5),
+            tags: String::from(""),
+            status: PomodoroStatus::Aborted
+        };
+        let transition_time = "2000-01-01T00:00:10+00:00".parse::<DateTime<UTC>>().unwrap();
+
+        let updated_pomodoro = PomodoroTransitioner::transition(transition_time, pomodoro.clone());
+
+        assert!(updated_pomodoro == pomodoro);
+    }
+
+    #[test]
+    fn does_nothing_to_a_completed_pomodoro() {
+        let pomodoro = Pomodoro {
+            id: 0,
+            work_start_time: "2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap(),
+            work_end_time: Some("2000-01-01T00:00:05+00:00".parse::<DateTime<UTC>>().unwrap()),
+            break_start_time: Some("2000-01-01T00:00:10+00:00".parse::<DateTime<UTC>>().unwrap()),
+            break_end_time: Some("2000-01-01T00:00:15+00:00".parse::<DateTime<UTC>>().unwrap()),
+            work_length: Duration::seconds(5),
+            break_length: Duration::seconds(5),
+            tags: String::from(""),
+            status: PomodoroStatus::Completed
+        };
+        let transition_time = "2000-01-01T00:00:30+00:00".parse::<DateTime<UTC>>().unwrap();
+
+        let updated_pomodoro = PomodoroTransitioner::transition(transition_time, pomodoro.clone());
+
+        println!("{:?} {:?}", updated_pomodoro, pomodoro);
+        assert!(updated_pomodoro == pomodoro);
     }
 }
