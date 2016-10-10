@@ -32,7 +32,16 @@ impl PomodoroQueryMapper {
                 tags,
                 status
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-            &[&start_time, &None as &Option<DateTime<UTC>>, &None as &Option<DateTime<UTC>>, &None as &Option<DateTime<UTC>>, &work_length as &i64, &break_length as &i64, &String::from(""), &PomodoroStatus::InProgress.to_string()]
+            &[
+                &start_time,
+                &None as &Option<DateTime<UTC>>,
+                &None as &Option<DateTime<UTC>>,
+                &None as &Option<DateTime<UTC>>,
+                &work_length as &i64,
+                &break_length as &i64,
+                &String::from(""),
+                &PomodoroStatus::InProgress.to_string()
+            ]
             );
 
         match result {
@@ -89,13 +98,31 @@ impl PomodoroQueryMapper {
         })))
     }
 
-    pub fn stop_pomodoro(id: i32) -> result::Result<(), ()> {
+    pub fn update_pomodoro(id: i32, pomodoro: Pomodoro) -> result::Result<(), ()> {
         let conn = postgres::Connection::connect("postgres://postgres@localhost:5432/solanum_test", postgres::SslMode::None).unwrap();
         (&conn).
             execute(
-                "UPDATE pomodoros SET status = $2
-                    WHERE id = $1",
-                    &[&id, &String::from("Completed")]
+                "UPDATE pomodoros SET
+                    work_start_time = $2,
+                    work_end_time = $3,
+                    break_start_time = $4,
+                    break_end_time = $5,
+                    work_length = $6,
+                    break_length = $7,
+                    tags = $8,
+                    status = $9
+                WHERE id = $1",
+                &[
+                    &id,
+                    &pomodoro.work_start_time,
+                    &pomodoro.work_end_time,
+                    &pomodoro.break_start_time,
+                    &pomodoro.break_end_time,
+                    &pomodoro.work_length.num_seconds() as &i64,
+                    &pomodoro.break_length.num_seconds() as &i64,
+                    &String::from(""),
+                    &pomodoro.status.to_string()
+                ]
             ).
             or_else(|err| { error!("{}", err.description()); Err(()) }).
             map(|_| ())

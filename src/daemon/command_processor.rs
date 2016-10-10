@@ -4,6 +4,7 @@ use self::chrono::datetime::DateTime;
 use self::chrono::offset::utc::UTC;
 
 use daemon::Command;
+use daemon::PomodoroTransitioner;
 use daemon::PomodoroQueryMapper;
 
 pub struct CommandProcessor {
@@ -37,7 +38,8 @@ impl CommandProcessor {
 
     fn handle_stop(&self) -> String {
         let result = PomodoroQueryMapper::get_most_recent_pomodoro().
-            and_then(|pomodoro| PomodoroQueryMapper::stop_pomodoro(pomodoro.id) );
+            map(|pomodoro| PomodoroTransitioner::transition(UTC::now(), &pomodoro)).
+            and_then(|pomodoro| PomodoroQueryMapper::update_pomodoro(pomodoro.id, pomodoro) );
 
         match result {
             Ok(_) => String::from("Pomodoro aborted"),
@@ -56,39 +58,5 @@ impl CommandProcessor {
             Ok(pomodoro_descriptions) => pomodoro_descriptions,
             Err(_) => String::from("Unable to list pomodoros")
         }
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use daemon::Command;
-
-    use super::CommandProcessor;
-    use super::chrono::Duration;
-    use super::chrono::TimeZone;
-    use super::chrono::datetime::DateTime;
-    use super::chrono::offset::utc::UTC;
-
-    // IGNORED pending resolution of test db teardown
-    #[ignore]
-    #[test]
-    fn responds_to_start_commands_with_the_current_time()
-    {
-        let processor = CommandProcessor::new();
-
-        let response = processor.handle_command(Command::Start("2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap(), Duration::seconds(42), Duration::seconds(42)));
-        println!("&UHJNM {}", response);
-
-        assert!(response == "Pomodoro started at 2000-01-01 00:00:00");
-    }
-
-    #[test]
-    fn responds_to_stop_commands()
-    {
-        let processor = CommandProcessor::new();
-
-        let response = processor.handle_command(Command::Stop);
-
-        assert!(response.contains("Pomodoro aborted"));
     }
 }
