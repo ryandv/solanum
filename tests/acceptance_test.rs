@@ -18,6 +18,7 @@ mod spec {
     use nix::unistd::{sleep};
 
     #[test]
+    #[ignore]
     fn full_lifecycle_test() {
         let client = client::Client::new();
         client_returns_error_when_daemon_is_not_active(&client);
