@@ -9,6 +9,7 @@ use daemon::io::CanHandle;
 use self::mio_uds::UnixListener;
 use self::mio_uds::UnixStream;
 
+use std::boxed::Box;
 use std::fs;
 use std::io;
 use std::result;
@@ -19,12 +20,12 @@ use std::path::Path;
 
 pub struct CommandEventSubscriber {
     io: UnixListener,
-    command_processor: CommandProcessor,
+    command_processor: Box<CommandProcessor>,
     token: mio::Token
 }
 
 impl CommandEventSubscriber {
-    pub fn new(command_processor: CommandProcessor, token: mio::Token) -> io::Result<CommandEventSubscriber> {
+    pub fn new(command_processor: Box<CommandProcessor>, token: mio::Token) -> io::Result<CommandEventSubscriber> {
         let listener = try!(UnixListener::bind("/tmp/solanum"));
         Ok(CommandEventSubscriber {
             io: listener,

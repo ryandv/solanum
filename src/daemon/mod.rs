@@ -3,6 +3,7 @@ pub mod command_processor;
 pub mod daemon_container;
 pub mod io;
 pub mod pomodoro;
+pub mod pomodoros;
 pub mod pomodoro_query_mapper;
 pub mod pomodoro_transitioner;
 

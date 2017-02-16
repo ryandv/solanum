@@ -1,11 +1,14 @@
 use daemon::io::mio;
 
 use daemon::CommandProcessor;
+use daemon::PomodoroQueryMapper;
 use daemon::io::CommandEventSubscriber;
 use daemon::io::SignalEventSubscriber;
 use daemon::io::EventPoller;
 
+use std::boxed::Box;
 use std::io;
+use std::ops::Deref;
 use std::os::unix::io::RawFd;
 
 pub struct DaemonContainer<'a> {
@@ -16,7 +19,8 @@ pub struct DaemonContainer<'a> {
 
 impl<'a> DaemonContainer<'a> {
     pub fn new(signalfd: &'a RawFd) -> io::Result<DaemonContainer<'a>> {
-        let command_processor = CommandProcessor::new();
+        let query_mapper = Box::new(PomodoroQueryMapper::new());
+        let command_processor = Box::new(CommandProcessor::new(query_mapper));
         let command_event_subscriber = try!(
             CommandEventSubscriber::new(
                 command_processor,

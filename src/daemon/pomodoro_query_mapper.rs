@@ -5,11 +5,13 @@ use self::chrono::datetime::DateTime;
 use self::chrono::offset::utc::UTC;
 
 use daemon::pomodoro::Pomodoro;
+use daemon::pomodoros::Pomodoros;
 use daemon::pomodoro::PomodoroStatus;
 
 use self::postgres::rows;
 
 use std::iter::FromIterator;
+use std::option::Option;
 use std::result;
 use std::error::Error;
 
@@ -17,7 +19,12 @@ pub struct PomodoroQueryMapper {
 }
 
 impl PomodoroQueryMapper {
-    pub fn create_pomodoro(start_time : &DateTime<UTC>, work_duration: chrono::Duration, break_duration: chrono::Duration) -> result::Result<(), ()> {
+    pub fn new() -> PomodoroQueryMapper {
+        PomodoroQueryMapper {
+        }
+    }
+
+    pub fn create_pomodoro(&self, start_time : &DateTime<UTC>, work_duration: chrono::Duration, break_duration: chrono::Duration) -> result::Result<(), ()> {
         let conn = postgres::Connection::connect("postgres://postgres@localhost:5432/solanum_test", postgres::SslMode::None).unwrap();
         let work_length = work_duration.num_seconds();
         let break_length = break_duration.num_seconds();
@@ -53,8 +60,8 @@ impl PomodoroQueryMapper {
         }
     }
 
-    pub fn get_most_recent_pomodoro() -> result::Result<Pomodoro, ()> {
-        match PomodoroQueryMapper::list_most_recent_pomodoros(1) {
+    pub fn get_most_recent_pomodoro(&self) -> result::Result<Pomodoro, ()> {
+        match self.list_most_recent_pomodoros(1) {
             Ok(mut pomodoros) => if pomodoros.is_empty() {
                 Err(())
             } else {
@@ -64,7 +71,7 @@ impl PomodoroQueryMapper {
         }
     }
 
-    pub fn list_most_recent_pomodoros(limit: usize) -> result::Result<Vec<Pomodoro>, ()> {
+    pub fn list_most_recent_pomodoros(&self, limit: usize) -> result::Result<Vec<Pomodoro>, ()> {
         let conn = postgres::Connection::connect("postgres://postgres@localhost:5432/solanum_test", postgres::SslMode::None).unwrap();
 
         let most_recent_results: rows::Rows = try!(
@@ -98,7 +105,7 @@ impl PomodoroQueryMapper {
         })))
     }
 
-    pub fn update_pomodoro(id: i32, pomodoro: Pomodoro) -> result::Result<(), ()> {
+    pub fn update_pomodoro(&self, id: i32, pomodoro: Pomodoro) -> result::Result<(), ()> {
         let conn = postgres::Connection::connect("postgres://postgres@localhost:5432/solanum_test", postgres::SslMode::None).unwrap();
         (&conn).
             execute(
@@ -126,5 +133,11 @@ impl PomodoroQueryMapper {
             ).
             or_else(|err| { error!("{}", err.description()); Err(()) }).
             map(|_| ())
+    }
+}
+
+impl Pomodoros for PomodoroQueryMapper {
+    fn most_recent(&self) -> Option<Pomodoro> {
+        self.get_most_recent_pomodoro().ok()
     }
 }
