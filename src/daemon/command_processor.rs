@@ -35,8 +35,8 @@ impl CommandProcessor {
     }
 
     fn handle_start(&self, start_time : &DateTime<UTC>, work_duration: chrono::Duration, break_duration: chrono::Duration) -> String {
-        let query_mapper = PomodoroQueryMapper::new();
-        let last_pomodoro = self.pomodoros.deref().most_recent().ok_or(()).
+        let pomodoros = self.pomodoros.deref();
+        let last_pomodoro = pomodoros.most_recent().ok_or(()).
             map(|pomodoro| {
                 let now = UTC::now();
                 let mut updated_pomodoro = PomodoroTransitioner::transition(now, &pomodoro);
@@ -46,10 +46,10 @@ impl CommandProcessor {
                 }
                 updated_pomodoro
             }).
-            and_then(|pomodoro| query_mapper.update_pomodoro(pomodoro.id, pomodoro) );
+            and_then(|pomodoro| pomodoros.update(pomodoro.id, pomodoro) );
 
-        let new_pomodoro = query_mapper.create_pomodoro(start_time, work_duration, break_duration).
-            and_then(|_| self.pomodoros.deref().most_recent().ok_or(()));
+        let new_pomodoro = pomodoros.create(start_time, work_duration, break_duration).
+            and_then(|_| pomodoros.most_recent().ok_or(()));
 
         match new_pomodoro {
             Ok(pomodoro) => format!("Pomodoro started at {}", pomodoro.work_start_time.format("%F %H:%M:%S").to_string()),
@@ -58,10 +58,9 @@ impl CommandProcessor {
     }
 
     fn handle_stop(&self) -> String {
-        let query_mapper = PomodoroQueryMapper::new();
         let result = self.pomodoros.deref().most_recent().ok_or(()).
             map(|pomodoro| PomodoroTransitioner::transition(UTC::now(), &pomodoro)).
-            and_then(|pomodoro| query_mapper.update_pomodoro(pomodoro.id, pomodoro) );
+            and_then(|pomodoro| self.pomodoros.deref().update(pomodoro.id, pomodoro) );
 
         match result {
             Ok(_) => String::from("Pomodoro aborted"),
@@ -70,8 +69,7 @@ impl CommandProcessor {
     }
 
     fn handle_list(&self) -> String {
-        let query_mapper = PomodoroQueryMapper::new();
-        let last_five_pomodoros = query_mapper.list_most_recent_pomodoros(5).
+        let last_five_pomodoros = self.pomodoros.deref().last(5).
             and_then(|pomodoros| Ok(
                     pomodoros.into_iter().fold(String::from(""), |acc, pomodoro| {
                         acc + &format!("[{}]: {} ({})\n", pomodoro.work_start_time.format("%F %H:%M:%S").to_string(), pomodoro.status, pomodoro.tags)
@@ -85,7 +83,6 @@ impl CommandProcessor {
 
     fn handle_status(&self) -> String {
         let now = UTC::now();
-        let query_mapper = PomodoroQueryMapper::new();
         let last_pomodoro = self.pomodoros.deref().most_recent().ok_or(());
 
         match last_pomodoro {
