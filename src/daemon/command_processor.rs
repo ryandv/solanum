@@ -99,3 +99,70 @@ impl CommandProcessor {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::CommandProcessor;
+
+    use super::chrono::Duration;
+    use super::chrono::datetime::DateTime;
+    use super::chrono::offset::utc::UTC;
+
+    use daemon::Command;
+    use daemon::pomodoro::Pomodoro;
+    use daemon::pomodoro::PomodoroStatus;
+    use daemon::pomodoros::Pomodoros;
+
+    struct PomodorosStub {
+    }
+
+    impl PomodorosStub {
+        fn new() -> PomodorosStub {
+            PomodorosStub {
+            }
+        }
+    }
+
+    impl Pomodoros for PomodorosStub {
+        fn create(&self, start_time: &DateTime<UTC>, work_duration: Duration, break_duration: Duration) -> Result<(), ()> {
+            Ok(())
+        }
+
+        fn last(&self, count: usize) -> Result<Vec<Pomodoro>, ()> {
+            Ok(Vec::new())
+        }
+
+        fn most_recent(&self) -> Option<Pomodoro> {
+            Some(Pomodoro {
+                id: 0,
+                work_start_time: "2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap(),
+                work_end_time: None,
+                break_start_time: None,
+                break_end_time: None,
+                work_length: Duration::seconds(5),
+                break_length: Duration::seconds(5),
+                tags: String::from(""),
+                status: PomodoroStatus::InProgress
+            })
+        }
+
+        fn update(&self, id: i32, pomodoro: Pomodoro) -> Result<(), ()> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn creates_a_new_pomodoro() {
+        let pomodoros_stub = PomodorosStub::new();
+        let processor = CommandProcessor::new(Box::new(pomodoros_stub));
+        let command = Command::Start(
+            "2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap(),
+            Duration::seconds(5),
+            Duration::seconds(5)
+        );
+
+        let result = processor.handle_command(command);
+
+        assert!(result == "Pomodoro started at 2000-01-01 00:00:00");
+    }
+}
