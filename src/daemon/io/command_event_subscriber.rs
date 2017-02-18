@@ -5,11 +5,11 @@ extern crate mio_uds;
 use daemon::Command;
 use daemon::CommandProcessor;
 use daemon::io::CanHandle;
+use daemon::pomodoros::Pomodoros;
 
 use self::mio_uds::UnixListener;
 use self::mio_uds::UnixStream;
 
-use std::boxed::Box;
 use std::fs;
 use std::io;
 use std::result;
@@ -18,14 +18,14 @@ use std::iter::FromIterator;
 use std::net::Shutdown;
 use std::path::Path;
 
-pub struct CommandEventSubscriber {
+pub struct CommandEventSubscriber<P: Pomodoros> {
     io: UnixListener,
-    command_processor: Box<CommandProcessor>,
+    command_processor: CommandProcessor<P>,
     token: mio::Token
 }
 
-impl CommandEventSubscriber {
-    pub fn new(command_processor: Box<CommandProcessor>, token: mio::Token) -> io::Result<CommandEventSubscriber> {
+impl<P: Pomodoros> CommandEventSubscriber<P> {
+    pub fn new(command_processor: CommandProcessor<P>, token: mio::Token) -> io::Result<CommandEventSubscriber<P>> {
         let listener = try!(UnixListener::bind("/tmp/solanum"));
         Ok(CommandEventSubscriber {
             io: listener,
@@ -50,7 +50,7 @@ impl CommandEventSubscriber {
     }
 }
 
-impl CanHandle for CommandEventSubscriber {
+impl<P: Pomodoros> CanHandle for CommandEventSubscriber<P> {
     fn handle(&self) -> result::Result<io::Result<()>, io::Result<()>> {
         match self.io.accept() {
             Ok(acceptor) => {
@@ -79,7 +79,7 @@ impl CanHandle for CommandEventSubscriber {
     }
 }
 
-impl Drop for CommandEventSubscriber {
+impl<P: Pomodoros> Drop for CommandEventSubscriber<P> {
     fn drop(&mut self)
     {
         // TODO: log errors instead of just silently discarding.

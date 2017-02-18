@@ -3,7 +3,6 @@ extern crate chrono;
 use self::chrono::datetime::DateTime;
 use self::chrono::offset::utc::UTC;
 
-use std::boxed::Box;
 use std::ops::Deref;
 
 use daemon::Command;
@@ -12,12 +11,12 @@ use daemon::PomodoroQueryMapper;
 use daemon::pomodoro::PomodoroStatus;
 use daemon::pomodoros::Pomodoros;
 
-pub struct CommandProcessor {
-    pomodoros: Box<Pomodoros>
+pub struct CommandProcessor<P: Pomodoros> {
+    pomodoros: P
 }
 
-impl CommandProcessor {
-    pub fn new(pomodoros: Box<Pomodoros>) -> CommandProcessor
+impl<P: Pomodoros> CommandProcessor<P> {
+    pub fn new(pomodoros: P) -> CommandProcessor<P>
     {
         CommandProcessor {
             pomodoros: pomodoros
@@ -35,7 +34,7 @@ impl CommandProcessor {
     }
 
     fn handle_start(&self, start_time : &DateTime<UTC>, work_duration: chrono::Duration, break_duration: chrono::Duration) -> String {
-        let pomodoros = self.pomodoros.deref();
+        let ref pomodoros = self.pomodoros;
         let last_pomodoro = pomodoros.most_recent().ok_or(()).
             map(|pomodoro| {
                 let now = UTC::now();
@@ -58,9 +57,9 @@ impl CommandProcessor {
     }
 
     fn handle_stop(&self) -> String {
-        let result = self.pomodoros.deref().most_recent().ok_or(()).
+        let result = self.pomodoros.most_recent().ok_or(()).
             map(|pomodoro| PomodoroTransitioner::transition(UTC::now(), &pomodoro)).
-            and_then(|pomodoro| self.pomodoros.deref().update(pomodoro.id, pomodoro) );
+            and_then(|pomodoro| self.pomodoros.update(pomodoro.id, pomodoro) );
 
         match result {
             Ok(_) => String::from("Pomodoro aborted"),
@@ -69,7 +68,7 @@ impl CommandProcessor {
     }
 
     fn handle_list(&self) -> String {
-        let last_five_pomodoros = self.pomodoros.deref().last(5).
+        let last_five_pomodoros = self.pomodoros.last(5).
             and_then(|pomodoros| Ok(
                     pomodoros.into_iter().fold(String::from(""), |acc, pomodoro| {
                         acc + &format!("[{}]: {} ({})\n", pomodoro.work_start_time.format("%F %H:%M:%S").to_string(), pomodoro.status, pomodoro.tags)
@@ -83,7 +82,7 @@ impl CommandProcessor {
 
     fn handle_status(&self) -> String {
         let now = UTC::now();
-        let last_pomodoro = self.pomodoros.deref().most_recent().ok_or(());
+        let last_pomodoro = self.pomodoros.most_recent().ok_or(());
 
         match last_pomodoro {
             Ok(pomodoro) => {
@@ -154,7 +153,7 @@ mod test {
     #[test]
     fn creates_a_new_pomodoro() {
         let pomodoros_stub = PomodorosStub::new();
-        let processor = CommandProcessor::new(Box::new(pomodoros_stub));
+        let processor = CommandProcessor::new(pomodoros_stub);
         let command = Command::Start(
             "2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap(),
             Duration::seconds(5),
