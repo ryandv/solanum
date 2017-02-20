@@ -24,7 +24,7 @@ impl PomodoroQueryMapper {
     }
 
     pub fn create_pomodoro(&self,
-                           start_time: &DateTime<UTC>,
+                           start_time: DateTime<UTC>,
                            work_duration: Duration,
                            break_duration: Duration)
                            -> Result<(), ()> {
@@ -156,7 +156,7 @@ impl PomodoroQueryMapper {
 
 impl Pomodoros for PomodoroQueryMapper {
     fn create(&self,
-              start_time: &DateTime<UTC>,
+              start_time: DateTime<UTC>,
               work_duration: Duration,
               break_duration: Duration)
               -> Result<(), ()> {

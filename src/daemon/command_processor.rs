@@ -23,7 +23,7 @@ impl<P: Pomodoros> CommandProcessor<P> {
     pub fn handle_command(&self, command: Command) -> String {
         match command {
             Command::Start(start_time, work_duration, break_duration) => {
-                self.handle_start(&start_time, work_duration, break_duration)
+                self.handle_start(start_time, work_duration, break_duration)
             }
             Command::Stop => self.handle_stop(),
             Command::List => self.handle_list(),
@@ -32,7 +32,7 @@ impl<P: Pomodoros> CommandProcessor<P> {
     }
 
     fn handle_start(&self,
-                    start_time: &DateTime<UTC>,
+                    start_time: DateTime<UTC>,
                     work_duration: chrono::Duration,
                     break_duration: chrono::Duration)
                     -> String {
@@ -121,6 +121,8 @@ impl<P: Pomodoros> CommandProcessor<P> {
 
 #[cfg(test)]
 mod test {
+    extern crate mockers;
+
     use super::CommandProcessor;
 
     use super::chrono::Duration;
@@ -142,7 +144,7 @@ mod test {
 
     impl Pomodoros for PomodorosStub {
         fn create(&self,
-                  start_time: &DateTime<UTC>,
+                  start_time: DateTime<UTC>,
                   work_duration: Duration,
                   break_duration: Duration)
                   -> Result<(), ()> {
@@ -183,5 +185,52 @@ mod test {
         let result = processor.handle_command(command);
 
         assert!(result == "Pomodoro started at 2000-01-01 00:00:00");
+    }
+
+    #[test]
+    #[ignore]
+    fn completes_the_most_recent_pomodoro_if_it_was_in_progress_past_the_work_time_before_creating_a_new_one() {
+        let mut scenario = mockers::Scenario::new();
+        let mut pomodoros = scenario.create_mock_for::<Pomodoros>();
+        let most_recent_pomodoro = Pomodoro {
+            id: 0,
+            work_start_time: "2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap(),
+            work_end_time: None,
+            break_start_time: None,
+            break_end_time: None,
+            work_length: Duration::seconds(5),
+            break_length: Duration::seconds(5),
+            tags: String::from(""),
+            status: PomodoroStatus::InProgress,
+        };
+        let expected_update = Pomodoro {
+            id: 0,
+            work_start_time: "2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap(),
+            work_end_time: Some("2000-01-01T00:00:05+00:00".parse::<DateTime<UTC>>().unwrap()),
+            break_start_time: None,
+            break_end_time: None,
+            work_length: Duration::seconds(5),
+            break_length: Duration::seconds(5),
+            tags: String::from(""),
+            status: PomodoroStatus::Completed,
+        };
+        let command = Command::Start(
+            "2017-01-01T12:34:56+00:00".parse::<DateTime<UTC>>().unwrap(),
+            Duration::seconds(5),
+            Duration::seconds(5)
+        );
+
+        scenario.expect(pomodoros.most_recent_call().and_return_clone(Some(most_recent_pomodoro)).times(2));
+        scenario.expect(pomodoros.update_call(expected_update.id, expected_update).and_return(Ok(())));
+        scenario.expect(pomodoros.create_call(
+            "2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap(),
+            Duration::seconds(5),
+            Duration::seconds(5)
+            ).
+            and_return(Ok(()))
+        );
+
+        let processor = CommandProcessor::new(pomodoros);
+        processor.handle_command(command);
     }
 }
