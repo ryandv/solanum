@@ -12,31 +12,34 @@ use daemon::pomodoro::PomodoroStatus;
 use daemon::pomodoros::Pomodoros;
 
 pub struct CommandProcessor<P: Pomodoros> {
-    pomodoros: P
+    pomodoros: P,
 }
 
 impl<P: Pomodoros> CommandProcessor<P> {
-    pub fn new(pomodoros: P) -> CommandProcessor<P>
-    {
-        CommandProcessor {
-            pomodoros: pomodoros
-        }
+    pub fn new(pomodoros: P) -> CommandProcessor<P> {
+        CommandProcessor { pomodoros: pomodoros }
     }
 
-    pub fn handle_command(&self, command: Command) -> String
-    {
+    pub fn handle_command(&self, command: Command) -> String {
         match command {
-            Command::Start(start_time, work_duration, break_duration) => self.handle_start(&start_time, work_duration, break_duration),
+            Command::Start(start_time, work_duration, break_duration) => {
+                self.handle_start(&start_time, work_duration, break_duration)
+            }
             Command::Stop => self.handle_stop(),
             Command::List => self.handle_list(),
-            Command::Status => self.handle_status()
+            Command::Status => self.handle_status(),
         }
     }
 
-    fn handle_start(&self, start_time : &DateTime<UTC>, work_duration: chrono::Duration, break_duration: chrono::Duration) -> String {
+    fn handle_start(&self,
+                    start_time: &DateTime<UTC>,
+                    work_duration: chrono::Duration,
+                    break_duration: chrono::Duration)
+                    -> String {
         let ref pomodoros = self.pomodoros;
-        let last_pomodoro = pomodoros.most_recent().ok_or(()).
-            map(|pomodoro| {
+        let last_pomodoro = pomodoros.most_recent()
+            .ok_or(())
+            .map(|pomodoro| {
                 let now = UTC::now();
                 let mut updated_pomodoro = PomodoroTransitioner::transition(now, &pomodoro);
                 if updated_pomodoro.status == PomodoroStatus::BreakPending {
@@ -44,39 +47,48 @@ impl<P: Pomodoros> CommandProcessor<P> {
                     updated_pomodoro = PomodoroTransitioner::transition(now, &updated_pomodoro);
                 }
                 updated_pomodoro
-            }).
-            and_then(|pomodoro| pomodoros.update(pomodoro.id, pomodoro) );
+            })
+            .and_then(|pomodoro| pomodoros.update(pomodoro.id, pomodoro));
 
-        let new_pomodoro = pomodoros.create(start_time, work_duration, break_duration).
-            and_then(|_| pomodoros.most_recent().ok_or(()));
+        let new_pomodoro = pomodoros.create(start_time, work_duration, break_duration)
+            .and_then(|_| pomodoros.most_recent().ok_or(()));
 
         match new_pomodoro {
-            Ok(pomodoro) => format!("Pomodoro started at {}", pomodoro.work_start_time.format("%F %H:%M:%S").to_string()),
-            Err(_) => format!("Failed to start pomodoro.")
+            Ok(pomodoro) => {
+                format!("Pomodoro started at {}",
+                        pomodoro.work_start_time.format("%F %H:%M:%S").to_string())
+            }
+            Err(_) => format!("Failed to start pomodoro."),
         }
     }
 
     fn handle_stop(&self) -> String {
-        let result = self.pomodoros.most_recent().ok_or(()).
-            map(|pomodoro| PomodoroTransitioner::transition(UTC::now(), &pomodoro)).
-            and_then(|pomodoro| self.pomodoros.update(pomodoro.id, pomodoro) );
+        let result = self.pomodoros
+            .most_recent()
+            .ok_or(())
+            .map(|pomodoro| PomodoroTransitioner::transition(UTC::now(), &pomodoro))
+            .and_then(|pomodoro| self.pomodoros.update(pomodoro.id, pomodoro));
 
         match result {
             Ok(_) => String::from("Pomodoro aborted"),
-            Err(_) => String::from("Failed to abort pomodoro")
+            Err(_) => String::from("Failed to abort pomodoro"),
         }
     }
 
     fn handle_list(&self) -> String {
-        let last_five_pomodoros = self.pomodoros.last(5).
-            and_then(|pomodoros| Ok(
-                    pomodoros.into_iter().fold(String::from(""), |acc, pomodoro| {
-                        acc + &format!("[{}]: {} ({})\n", pomodoro.work_start_time.format("%F %H:%M:%S").to_string(), pomodoro.status, pomodoro.tags)
-                    })));
+        let last_five_pomodoros = self.pomodoros.last(5).and_then(|pomodoros| {
+            Ok(pomodoros.into_iter().fold(String::from(""), |acc, pomodoro| {
+                acc +
+                &format!("[{}]: {} ({})\n",
+                         pomodoro.work_start_time.format("%F %H:%M:%S").to_string(),
+                         pomodoro.status,
+                         pomodoro.tags)
+            }))
+        });
 
         match last_five_pomodoros {
             Ok(pomodoro_descriptions) => pomodoro_descriptions,
-            Err(_) => String::from("Unable to list pomodoros")
+            Err(_) => String::from("Unable to list pomodoros"),
         }
     }
 
@@ -88,13 +100,21 @@ impl<P: Pomodoros> CommandProcessor<P> {
             Ok(pomodoro) => {
                 let work_time_remaining = (pomodoro.work_start_time + pomodoro.work_length) - now;
                 let work_minutes_remaining = work_time_remaining.num_minutes();
-                let work_seconds_remaining = work_time_remaining.num_seconds() - work_minutes_remaining * 60;
-                let break_time_remaining = pomodoro.break_start_time.map(|start_time| (start_time + pomodoro.break_length) - now).unwrap_or(pomodoro.break_length);
+                let work_seconds_remaining = work_time_remaining.num_seconds() -
+                                             work_minutes_remaining * 60;
+                let break_time_remaining = pomodoro.break_start_time
+                    .map(|start_time| (start_time + pomodoro.break_length) - now)
+                    .unwrap_or(pomodoro.break_length);
                 let break_minutes_remaining = break_time_remaining.num_minutes();
-                let break_seconds_remaining = break_time_remaining.num_seconds() - break_minutes_remaining * 60;
-                format!("{:02}:{:02} | {:02}:{:02}", work_minutes_remaining, work_seconds_remaining, break_minutes_remaining, break_seconds_remaining)
+                let break_seconds_remaining = break_time_remaining.num_seconds() -
+                                              break_minutes_remaining * 60;
+                format!("{:02}:{:02} | {:02}:{:02}",
+                        work_minutes_remaining,
+                        work_seconds_remaining,
+                        break_minutes_remaining,
+                        break_seconds_remaining)
             }
-            Err(_) => format!("Failed to start pomodoro.")
+            Err(_) => format!("Failed to start pomodoro."),
         }
     }
 }
@@ -112,18 +132,20 @@ mod test {
     use daemon::pomodoro::PomodoroStatus;
     use daemon::pomodoros::Pomodoros;
 
-    struct PomodorosStub {
-    }
+    struct PomodorosStub {}
 
     impl PomodorosStub {
         fn new() -> PomodorosStub {
-            PomodorosStub {
-            }
+            PomodorosStub {}
         }
     }
 
     impl Pomodoros for PomodorosStub {
-        fn create(&self, start_time: &DateTime<UTC>, work_duration: Duration, break_duration: Duration) -> Result<(), ()> {
+        fn create(&self,
+                  start_time: &DateTime<UTC>,
+                  work_duration: Duration,
+                  break_duration: Duration)
+                  -> Result<(), ()> {
             Ok(())
         }
 
@@ -141,7 +163,7 @@ mod test {
                 work_length: Duration::seconds(5),
                 break_length: Duration::seconds(5),
                 tags: String::from(""),
-                status: PomodoroStatus::InProgress
+                status: PomodoroStatus::InProgress,
             })
         }
 
@@ -154,11 +176,9 @@ mod test {
     fn creates_a_new_pomodoro() {
         let pomodoros_stub = PomodorosStub::new();
         let processor = CommandProcessor::new(pomodoros_stub);
-        let command = Command::Start(
-            "2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap(),
-            Duration::seconds(5),
-            Duration::seconds(5)
-        );
+        let command = Command::Start("2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap(),
+                                     Duration::seconds(5),
+                                     Duration::seconds(5));
 
         let result = processor.handle_command(command);
 

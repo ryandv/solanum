@@ -14,19 +14,17 @@ pub enum Command {
     Start(chrono::datetime::DateTime<UTC>, chrono::Duration, chrono::Duration),
     Stop,
     List,
-    Status
+    Status,
 }
 
 #[derive(Debug)]
 pub struct InvalidCommandString {
-    command_string: String
+    command_string: String,
 }
 
 impl InvalidCommandString {
     pub fn new(command_string: String) -> InvalidCommandString {
-        InvalidCommandString {
-            command_string: format!("Invalid command: {}", command_string)
-        }
+        InvalidCommandString { command_string: format!("Invalid command: {}", command_string) }
     }
 }
 
@@ -43,19 +41,26 @@ impl Error for InvalidCommandString {
 }
 
 impl Command {
-    pub fn from_string(current_time: DateTime<UTC>, string : String) -> Result<Command, InvalidCommandString> {
-        let start_re = regex::Regex::new(r"^START(?: tags ((?:\w+,)*(?:\w+)))?(?: (\d+) (\d+))?").unwrap();
+    pub fn from_string(current_time: DateTime<UTC>,
+                       string: String)
+                       -> Result<Command, InvalidCommandString> {
+        let start_re = regex::Regex::new(r"^START(?: tags ((?:\w+,)*(?:\w+)))?(?: (\d+) (\d+))?")
+            .unwrap();
         if start_re.is_match(string.as_str()) {
             match start_re.captures(string.as_str()) {
                 Some(caps) => {
-                    let work_time_argument : i64 = caps.at(2).unwrap_or("1500").parse().unwrap_or(1500);
-                    let break_time_argument : i64 = caps.at(3).unwrap_or("300").parse().unwrap_or(300);
+                    let work_time_argument: i64 =
+                        caps.at(2).unwrap_or("1500").parse().unwrap_or(1500);
+                    let break_time_argument: i64 =
+                        caps.at(3).unwrap_or("300").parse().unwrap_or(300);
                     let work_time = chrono::Duration::seconds(work_time_argument);
                     let break_time = chrono::Duration::seconds(break_time_argument);
                     Ok(Command::Start(current_time, work_time, break_time))
-                },
+                }
                 None => {
-                    Ok(Command::Start(current_time, chrono::Duration::seconds(1500), chrono::Duration::seconds(300)))
+                    Ok(Command::Start(current_time,
+                                      chrono::Duration::seconds(1500),
+                                      chrono::Duration::seconds(300)))
                 }
             }
         } else if string == "STOP" {
@@ -85,7 +90,10 @@ mod test {
 
         let command = Command::from_string(current_time, string);
 
-        assert!(command.unwrap() == Command::Start(current_time, Duration::seconds(1500), Duration::seconds(300)));
+        assert!(command.unwrap() ==
+                Command::Start(current_time,
+                               Duration::seconds(1500),
+                               Duration::seconds(300)));
     }
 
     #[test]
@@ -95,7 +103,8 @@ mod test {
 
         let command = Command::from_string(current_time, string);
 
-        assert!(command.unwrap() == Command::Start(current_time, Duration::seconds(23), Duration::seconds(42)));
+        assert!(command.unwrap() ==
+                Command::Start(current_time, Duration::seconds(23), Duration::seconds(42)));
     }
 
     #[test]

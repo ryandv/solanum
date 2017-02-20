@@ -8,11 +8,11 @@ use std::process;
 fn main() {
     let mut args = env::args();
     if args.len() < 2 {
-        println!(
-            "USAGE: solanum COMMAND
+        println!("USAGE: solanum COMMAND
 
   Where COMMAND is one of:
-      start : Start a new pomodoro");
+      start : Start a new \
+                  pomodoro");
         process::exit(1);
     }
 

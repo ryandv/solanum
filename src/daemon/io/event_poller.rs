@@ -2,12 +2,12 @@ use daemon::io::CanHandle;
 
 use std::io;
 
-use super::mio::{ Events, Poll, PollOpt, Ready };
+use super::mio::{Events, Poll, PollOpt, Ready};
 
 pub struct EventPoller<'a> {
     poll: Poll,
     events: Events,
-    subscriptions: Vec<&'a CanHandle>
+    subscriptions: Vec<&'a CanHandle>,
 }
 
 impl<'a> EventPoller<'a> {
@@ -16,15 +16,18 @@ impl<'a> EventPoller<'a> {
         Ok(EventPoller {
             poll: poll,
             events: Events::with_capacity(1024),
-            subscriptions: Vec::new()
+            subscriptions: Vec::new(),
         })
     }
 
     pub fn listen_for<'b>(&mut self, subscriber: &'b CanHandle) -> io::Result<()>
-        where 'b : 'a
+        where 'b: 'a
     {
         self.subscriptions.push(subscriber);
-        self.poll.register(subscriber.io(), subscriber.token(), Ready::readable(), PollOpt::edge())
+        self.poll.register(subscriber.io(),
+                           subscriber.token(),
+                           Ready::readable(),
+                           PollOpt::edge())
     }
 
     /// Repeatedly poll for and handle incoming Events.
@@ -33,26 +36,30 @@ impl<'a> EventPoller<'a> {
     pub fn start_polling(&mut self) -> io::Result<()> {
         loop {
             match self.poll.poll(&mut self.events, None) {
-                Ok(_) => {},
+                Ok(_) => {}
                 Err(_) => {
                     error!("Could not poll for events");
-                    return Err(io::Error::new(io::ErrorKind::InvalidInput, "Could not poll for events"));
+                    return Err(io::Error::new(io::ErrorKind::InvalidInput,
+                                              "Could not poll for events"));
                 }
             }
 
             for event in self.events.iter() {
                 let mut subscriptions_iter = self.subscriptions.iter();
-                let handling_result = subscriptions_iter.
-                    find(|subscription| subscription.token() == event.token()).
-                    ok_or_else(|| {
-                        error!("Unhandled token received");
-                        Err(io::Error::new(io::ErrorKind::InvalidInput, "Received event from unknown source"))
-                    }).
-                    and_then(|subscription| subscription.handle());
+                let handling_result =
+                    subscriptions_iter.find(|subscription| subscription.token() == event.token())
+                        .ok_or_else(|| {
+                            error!("Unhandled token received");
+                            Err(io::Error::new(io::ErrorKind::InvalidInput,
+                                               "Received event from unknown source"))
+                        })
+                        .and_then(|subscription| subscription.handle());
 
                 match handling_result {
-                    Ok(_) => {},
-                    Err(e) => { return e; }
+                    Ok(_) => {}
+                    Err(e) => {
+                        return e;
+                    }
                 }
             }
         }

@@ -7,14 +7,14 @@ use super::mio;
 
 pub struct SignalEventSubscriber<'a> {
     io: mio::unix::EventedFd<'a>,
-    token: mio::Token
+    token: mio::Token,
 }
 
 impl<'a> SignalEventSubscriber<'a> {
     pub fn new(io: mio::unix::EventedFd, token: mio::Token) -> SignalEventSubscriber {
         SignalEventSubscriber {
             io: io,
-            token: token
+            token: token,
         }
     }
 }
@@ -32,5 +32,4 @@ impl<'a> CanHandle for SignalEventSubscriber<'a> {
     fn io(&self) -> &mio::Evented {
         &self.io
     }
-
 }

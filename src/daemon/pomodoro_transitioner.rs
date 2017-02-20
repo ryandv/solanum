@@ -6,8 +6,7 @@ use self::chrono::offset::utc::UTC;
 use daemon::pomodoro::Pomodoro;
 use daemon::pomodoro::PomodoroStatus;
 
-pub struct PomodoroTransitioner {
-}
+pub struct PomodoroTransitioner {}
 
 impl PomodoroTransitioner {
     pub fn transition(current_time: DateTime<UTC>, pomodoro: &Pomodoro) -> Pomodoro {
@@ -16,14 +15,19 @@ impl PomodoroTransitioner {
         match (*pomodoro).status {
             PomodoroStatus::Aborted => new_pomodoro,
             PomodoroStatus::Completed => new_pomodoro,
-            PomodoroStatus::BreakPending => PomodoroTransitioner::start_break(current_time, new_pomodoro),
-            PomodoroStatus::Break => PomodoroTransitioner::complete_pomodoro(current_time, new_pomodoro),
-            PomodoroStatus::InProgress =>
+            PomodoroStatus::BreakPending => {
+                PomodoroTransitioner::start_break(current_time, new_pomodoro)
+            }
+            PomodoroStatus::Break => {
+                PomodoroTransitioner::complete_pomodoro(current_time, new_pomodoro)
+            }
+            PomodoroStatus::InProgress => {
                 if current_time >= pomodoro.work_start_time + pomodoro.work_length {
                     PomodoroTransitioner::finish_working(current_time, new_pomodoro)
                 } else {
                     PomodoroTransitioner::abort_pomodoro(current_time, new_pomodoro)
                 }
+            }
         }
     }
 
@@ -78,7 +82,7 @@ mod test {
             work_length: Duration::seconds(5),
             break_length: Duration::seconds(5),
             tags: String::from(""),
-            status: PomodoroStatus::InProgress
+            status: PomodoroStatus::InProgress,
         };
         let transition_time = "2000-01-01T00:00:01+00:00".parse::<DateTime<UTC>>().unwrap();
 
@@ -99,7 +103,7 @@ mod test {
             work_length: Duration::seconds(5),
             break_length: Duration::seconds(5),
             tags: String::from(""),
-            status: PomodoroStatus::InProgress
+            status: PomodoroStatus::InProgress,
         };
         let transition_time = "2000-01-01T00:00:05+00:00".parse::<DateTime<UTC>>().unwrap();
 
@@ -120,7 +124,7 @@ mod test {
             work_length: Duration::seconds(5),
             break_length: Duration::seconds(5),
             tags: String::from(""),
-            status: PomodoroStatus::BreakPending
+            status: PomodoroStatus::BreakPending,
         };
         let transition_time = "2000-01-01T00:00:10+00:00".parse::<DateTime<UTC>>().unwrap();
 
@@ -141,7 +145,7 @@ mod test {
             work_length: Duration::seconds(5),
             break_length: Duration::seconds(5),
             tags: String::from(""),
-            status: PomodoroStatus::Break
+            status: PomodoroStatus::Break,
         };
         let transition_time = "2000-01-01T00:00:15+00:00".parse::<DateTime<UTC>>().unwrap();
 
@@ -162,7 +166,7 @@ mod test {
             work_length: Duration::seconds(5),
             break_length: Duration::seconds(5),
             tags: String::from(""),
-            status: PomodoroStatus::Aborted
+            status: PomodoroStatus::Aborted,
         };
         let transition_time = "2000-01-01T00:00:10+00:00".parse::<DateTime<UTC>>().unwrap();
 
@@ -182,7 +186,7 @@ mod test {
             work_length: Duration::seconds(5),
             break_length: Duration::seconds(5),
             tags: String::from(""),
-            status: PomodoroStatus::Completed
+            status: PomodoroStatus::Completed,
         };
         let transition_time = "2000-01-01T00:00:30+00:00".parse::<DateTime<UTC>>().unwrap();
 

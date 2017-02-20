@@ -15,7 +15,7 @@ pub struct Pomodoro {
     pub work_length: chrono::Duration,
     pub break_length: chrono::Duration,
     pub tags: String,
-    pub status: PomodoroStatus
+    pub status: PomodoroStatus,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -24,7 +24,7 @@ pub enum PomodoroStatus {
     Aborted,
     BreakPending,
     Break,
-    Completed
+    Completed,
 }
 
 impl fmt::Display for PomodoroStatus {
@@ -46,7 +46,7 @@ impl From<String> for PomodoroStatus {
             "BreakPending" => PomodoroStatus::BreakPending,
             "Break" => PomodoroStatus::Break,
             "Completed" => PomodoroStatus::Completed,
-            _ => PomodoroStatus::Aborted
+            _ => PomodoroStatus::Aborted,
         }
     }
 }

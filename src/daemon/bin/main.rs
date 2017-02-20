@@ -16,18 +16,17 @@ use std::mem;
 use std::os::unix::io::RawFd;
 use std::path::Path;
 
-unsafe fn daemonize()
-{
-    let child_pid : libc::pid_t;
-    let daemon_pid : libc::pid_t;
-    let sid : libc::pid_t;
-    let c_root : *const libc::c_char;
+unsafe fn daemonize() {
+    let child_pid: libc::pid_t;
+    let daemon_pid: libc::pid_t;
+    let sid: libc::pid_t;
+    let c_root: *const libc::c_char;
 
     let root = CString::new("/");
 
     match root {
         Ok(ref s) => c_root = s.as_ptr(),
-        Err(_) => libc::exit(libc::EXIT_FAILURE)
+        Err(_) => libc::exit(libc::EXIT_FAILURE),
     }
 
     libc::umask(0);
@@ -74,41 +73,40 @@ unsafe fn daemonize()
     pid_file.write_fmt(format_args!("{}", libc::getpid())).unwrap();
 }
 
-unsafe fn open_signalfd<'a> () -> RawFd {
-    let mut block_mask : libc::sigset_t = mem::uninitialized();
-    let mut old_block_mask : libc::sigset_t = mem::uninitialized();
+unsafe fn open_signalfd<'a>() -> RawFd {
+    let mut block_mask: libc::sigset_t = mem::uninitialized();
+    let mut old_block_mask: libc::sigset_t = mem::uninitialized();
 
     libc::sigemptyset(&mut block_mask as *mut libc::sigset_t);
     libc::sigaddset(&mut block_mask as *mut libc::sigset_t, libc::SIGTERM);
-    libc::pthread_sigmask(
-        libc::SIG_BLOCK,
-        &block_mask as *const libc::sigset_t,
-        &mut old_block_mask as *mut libc::sigset_t
-    );
+    libc::pthread_sigmask(libc::SIG_BLOCK,
+                          &block_mask as *const libc::sigset_t,
+                          &mut old_block_mask as *mut libc::sigset_t);
 
-    libc::signalfd(
-        -1 as libc::c_int,
-        &block_mask as *const libc::sigset_t,
-        0 as libc::c_int
-    )
+    libc::signalfd(-1 as libc::c_int,
+                   &block_mask as *const libc::sigset_t,
+                   0 as libc::c_int)
 }
 
 fn listen_for_events<'a>() -> io::Result<()> {
 
-    let signalfd : RawFd;
-    unsafe { signalfd = open_signalfd(); }
+    let signalfd: RawFd;
+    unsafe {
+        signalfd = open_signalfd();
+    }
 
     let mut container = daemon::DaemonContainer::new(&signalfd).unwrap();
     container.start()
 }
 
-fn main()
-{
+fn main() {
     // TODO: currently here because daemon chdir's to / and don't want to resolve the relative path
     // at the moment.
     log4rs::init_file("config/log4rs.yaml", Default::default()).unwrap();
 
-    unsafe { daemonize(); }
+    unsafe {
+        daemonize();
+    }
 
     listen_for_events().unwrap();
 
