@@ -1,6 +1,7 @@
-extern crate chrono;
 extern crate mio;
 extern crate mio_uds;
+
+use daemon::chrono::offset::utc::UTC;
 
 use daemon::clock::Clock;
 use daemon::Command;
@@ -45,7 +46,7 @@ impl<C: Clock, P: Pomodoros> CommandEventSubscriber<C, P> {
             .take_while(|codepoint| *codepoint != (0 as u8)));
         let message = try!(String::from_utf8(codepoints)
             .map_err(|_| Error::new(ErrorKind::InvalidInput, "failed to parse UTF-8 command")));
-        let command = try!(Command::from_string(chrono::offset::utc::UTC::now(), message)
+        let command = try!(Command::from_string(UTC::now(), message)
             .map_err(|_| Error::new(ErrorKind::InvalidInput, "failed to parse command string")));
 
         let response = self.command_processor.handle_command(command);

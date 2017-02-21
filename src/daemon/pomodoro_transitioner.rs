@@ -1,7 +1,5 @@
-extern crate chrono;
-
-use self::chrono::datetime::DateTime;
-use self::chrono::offset::utc::UTC;
+use daemon::chrono::datetime::DateTime;
+use daemon::chrono::offset::utc::UTC;
 
 use daemon::pomodoro::Pomodoro;
 use daemon::pomodoro::PomodoroStatus;
@@ -62,14 +60,9 @@ impl PomodoroTransitioner {
 
 #[cfg(test)]
 mod test {
-    use super::PomodoroTransitioner;
+    use daemon::chrono::Duration;
 
-    use super::chrono::Duration;
-    use super::chrono::datetime::DateTime;
-    use super::chrono::offset::utc::UTC;
-
-    use daemon::pomodoro::Pomodoro;
-    use daemon::pomodoro::PomodoroStatus;
+    use super::*;
 
     #[test]
     fn aborts_a_pomodoro_transitioned_before_work_duration_has_elapsed() {

@@ -1,3 +1,5 @@
+extern crate chrono;
+
 pub mod clock;
 pub mod command;
 pub mod command_processor;
