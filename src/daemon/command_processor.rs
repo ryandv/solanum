@@ -1,5 +1,6 @@
 extern crate chrono;
 
+use self::chrono::Duration;
 use self::chrono::datetime::DateTime;
 use self::chrono::offset::utc::UTC;
 
@@ -38,8 +39,8 @@ impl<C: Clock, P: Pomodoros> CommandProcessor<C, P> {
 
     fn handle_start(&self,
                     start_time: DateTime<UTC>,
-                    work_duration: chrono::Duration,
-                    break_duration: chrono::Duration)
+                    work_duration: Duration,
+                    break_duration: Duration)
                     -> String {
         let ref pomodoros = self.pomodoros;
         let last_pomodoro = pomodoros.most_recent()
@@ -213,10 +214,11 @@ mod test {
     }
 
     #[test]
-    #[ignore]
     fn completes_the_most_recent_pomodoro_if_it_was_in_progress_past_the_work_time_before_creating_a_new_one() {
         let mut scenario = mockers::Scenario::new();
         let mut pomodoros = scenario.create_mock_for::<Pomodoros>();
+        let current_time = "2017-01-01T12:34:56+00:00".parse::<DateTime<UTC>>().unwrap();
+        let clock_stub = ClockStub::new(current_time);
         let most_recent_pomodoro = Pomodoro {
             id: 0,
             work_start_time: "2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap(),
@@ -232,16 +234,15 @@ mod test {
             id: 0,
             work_start_time: "2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap(),
             work_end_time: Some("2000-01-01T00:00:05+00:00".parse::<DateTime<UTC>>().unwrap()),
-            break_start_time: None,
-            break_end_time: None,
+            break_start_time: Some(current_time),
+            break_end_time: Some(current_time),
             work_length: Duration::seconds(5),
             break_length: Duration::seconds(5),
             tags: String::from(""),
             status: PomodoroStatus::Completed,
         };
-        let clock_stub = ClockStub::new("2017-01-01T12:34:56+00:00".parse::<DateTime<UTC>>().unwrap());
         let command = Command::Start(
-            clock_stub.current_time(),
+            current_time,
             Duration::seconds(5),
             Duration::seconds(5)
         );
@@ -249,7 +250,7 @@ mod test {
         scenario.expect(pomodoros.most_recent_call().and_return_clone(Some(most_recent_pomodoro)).times(2));
         scenario.expect(pomodoros.update_call(expected_update.id, expected_update).and_return(Ok(())));
         scenario.expect(pomodoros.create_call(
-            "2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap(),
+            current_time,
             Duration::seconds(5),
             Duration::seconds(5)
             ).
