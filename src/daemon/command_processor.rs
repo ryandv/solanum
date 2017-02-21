@@ -141,11 +141,7 @@ mod test {
     }
 
     impl Pomodoros for PomodorosStub {
-        fn create(&self,
-                  _: DateTime<UTC>,
-                  __: Duration,
-                  ___: Duration)
-                  -> Result<(), ()> {
+        fn create(&self, _: DateTime<UTC>, __: Duration, ___: Duration) -> Result<(), ()> {
             Ok(())
         }
 
@@ -173,14 +169,12 @@ mod test {
     }
 
     struct ClockStub {
-        fake_time: DateTime<UTC>
+        fake_time: DateTime<UTC>,
     }
 
     impl ClockStub {
         fn new(fake_time: DateTime<UTC>) -> ClockStub {
-            ClockStub {
-                fake_time: fake_time,
-            }
+            ClockStub { fake_time: fake_time }
         }
     }
 
@@ -193,7 +187,8 @@ mod test {
     #[test]
     fn creates_a_new_pomodoro() {
         let pomodoros_stub = PomodorosStub::new();
-        let clock_stub = ClockStub::new("2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap());
+        let clock_stub =
+            ClockStub::new("2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap());
         let command = Command::Start(clock_stub.current_time(),
                                      Duration::seconds(5),
                                      Duration::seconds(5));
@@ -205,7 +200,8 @@ mod test {
     }
 
     #[test]
-    fn completes_the_most_recent_pomodoro_if_it_was_in_progress_past_the_work_time_before_creating_a_new_one() {
+    fn completes_last_pomodoro_if_it_was_in_progress_past_work_length_before_creating_a_new_one
+        () {
         let mut scenario = mockers::Scenario::new();
         let pomodoros = scenario.create_mock_for::<Pomodoros>();
         let current_time = "2017-01-01T12:34:56+00:00".parse::<DateTime<UTC>>().unwrap();
@@ -232,14 +228,13 @@ mod test {
             tags: String::from(""),
             status: PomodoroStatus::Completed,
         };
-        let command = Command::Start(
-            current_time,
-            Duration::seconds(5),
-            Duration::seconds(5)
-        );
+        let command = Command::Start(current_time, Duration::seconds(5), Duration::seconds(5));
 
-        scenario.expect(pomodoros.most_recent_call().and_return_clone(Some(most_recent_pomodoro)).times(2));
-        scenario.expect(pomodoros.update_call(expected_update.id, expected_update).and_return(Ok(())));
+        scenario.expect(pomodoros.most_recent_call()
+            .and_return_clone(Some(most_recent_pomodoro))
+            .times(2));
+        scenario.expect(pomodoros.update_call(expected_update.id, expected_update)
+            .and_return(Ok(())));
         scenario.expect(pomodoros.create_call(
             current_time,
             Duration::seconds(5),

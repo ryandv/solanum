@@ -3,12 +3,11 @@ use daemon::chrono::offset::utc::UTC;
 
 use daemon::clock::Clock;
 
-pub struct SystemClock {
-}
+pub struct SystemClock {}
 
 impl SystemClock {
     pub fn new() -> SystemClock {
-        SystemClock { }
+        SystemClock {}
     }
 }
 
@@ -17,4 +16,3 @@ impl Clock for SystemClock {
         UTC::now()
     }
 }
-
