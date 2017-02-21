@@ -1,8 +1,8 @@
-extern crate chrono;
 extern crate regex;
 
-use self::chrono::datetime::DateTime;
-use self::chrono::offset::utc::UTC;
+use daemon::chrono::Duration;
+use daemon::chrono::datetime::DateTime;
+use daemon::chrono::offset::utc::UTC;
 
 use std::fmt::Display;
 use std::fmt::Error as FmtError;
@@ -11,7 +11,7 @@ use std::error::Error;
 
 #[derive(PartialEq, Eq)]
 pub enum Command {
-    Start(chrono::datetime::DateTime<UTC>, chrono::Duration, chrono::Duration),
+    Start(DateTime<UTC>, Duration, Duration),
     Stop,
     List,
     Status,
@@ -53,14 +53,14 @@ impl Command {
                         caps.at(2).unwrap_or("1500").parse().unwrap_or(1500);
                     let break_time_argument: i64 =
                         caps.at(3).unwrap_or("300").parse().unwrap_or(300);
-                    let work_time = chrono::Duration::seconds(work_time_argument);
-                    let break_time = chrono::Duration::seconds(break_time_argument);
+                    let work_time = Duration::seconds(work_time_argument);
+                    let break_time = Duration::seconds(break_time_argument);
                     Ok(Command::Start(current_time, work_time, break_time))
                 }
                 None => {
                     Ok(Command::Start(current_time,
-                                      chrono::Duration::seconds(1500),
-                                      chrono::Duration::seconds(300)))
+                                      Duration::seconds(1500),
+                                      Duration::seconds(300)))
                 }
             }
         } else if string == "STOP" {
@@ -77,11 +77,7 @@ impl Command {
 
 #[cfg(test)]
 mod test {
-
-    use super::Command;
-    use super::chrono::Duration;
-    use super::chrono::datetime::DateTime;
-    use super::chrono::offset::utc::UTC;
+    use super::*;
 
     #[test]
     fn can_parse_start_commands_with_default_durations() {

@@ -1,10 +1,8 @@
-extern crate chrono;
-
 use daemon::pomodoro::Pomodoro;
 
-use self::chrono::Duration;
-use self::chrono::datetime::DateTime;
-use self::chrono::offset::utc::UTC;
+use daemon::chrono::Duration;
+use daemon::chrono::datetime::DateTime;
+use daemon::chrono::offset::utc::UTC;
 
 use std::vec::Vec;
 use std::option::Option;

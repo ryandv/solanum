@@ -1,8 +1,6 @@
-extern crate chrono;
-
-use self::chrono::Duration;
-use self::chrono::datetime::DateTime;
-use self::chrono::offset::utc::UTC;
+use daemon::chrono::Duration;
+use daemon::chrono::datetime::DateTime;
+use daemon::chrono::offset::utc::UTC;
 
 use std::ops::Deref;
 
@@ -129,11 +127,7 @@ impl<C: Clock, P: Pomodoros> CommandProcessor<C, P> {
 mod test {
     extern crate mockers;
 
-    use super::CommandProcessor;
-
-    use super::chrono::Duration;
-    use super::chrono::datetime::DateTime;
-    use super::chrono::offset::utc::UTC;
+    use super::*;
 
     use daemon::Command;
     use daemon::clock::Clock;

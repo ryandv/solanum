@@ -1,19 +1,18 @@
-extern crate chrono;
-
-use self::chrono::datetime::DateTime;
-use self::chrono::offset::utc::UTC;
+use daemon::chrono::Duration;
+use daemon::chrono::datetime::DateTime;
+use daemon::chrono::offset::utc::UTC;
 
 use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Pomodoro {
     pub id: i32,
-    pub work_start_time: chrono::datetime::DateTime<UTC>,
-    pub work_end_time: Option<chrono::datetime::DateTime<UTC>>,
-    pub break_start_time: Option<chrono::datetime::DateTime<UTC>>,
-    pub break_end_time: Option<chrono::datetime::DateTime<UTC>>,
-    pub work_length: chrono::Duration,
-    pub break_length: chrono::Duration,
+    pub work_start_time: DateTime<UTC>,
+    pub work_end_time: Option<DateTime<UTC>>,
+    pub break_start_time: Option<DateTime<UTC>>,
+    pub break_end_time: Option<DateTime<UTC>>,
+    pub work_length: Duration,
+    pub break_length: Duration,
     pub tags: String,
     pub status: PomodoroStatus,
 }

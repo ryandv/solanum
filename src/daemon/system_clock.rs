@@ -1,7 +1,5 @@
-extern crate chrono;
-
-use self::chrono::datetime::DateTime;
-use self::chrono::offset::utc::UTC;
+use daemon::chrono::datetime::DateTime;
+use daemon::chrono::offset::utc::UTC;
 
 use daemon::clock::Clock;
 

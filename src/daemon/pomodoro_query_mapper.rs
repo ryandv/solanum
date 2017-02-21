@@ -1,9 +1,8 @@
-extern crate chrono;
 extern crate postgres;
 
-use self::chrono::Duration;
-use self::chrono::datetime::DateTime;
-use self::chrono::offset::utc::UTC;
+use daemon::chrono::Duration;
+use daemon::chrono::datetime::DateTime;
+use daemon::chrono::offset::utc::UTC;
 
 use daemon::pomodoro::Pomodoro;
 use daemon::pomodoros::Pomodoros;
