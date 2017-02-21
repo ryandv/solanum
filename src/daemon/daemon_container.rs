@@ -5,12 +5,9 @@ use daemon::PomodoroQueryMapper;
 use daemon::io::CommandEventSubscriber;
 use daemon::io::SignalEventSubscriber;
 use daemon::io::EventPoller;
-use daemon::pomodoros::Pomodoros;
 use daemon::system_clock::SystemClock;
 
-use std::boxed::Box;
 use std::io;
-use std::ops::Deref;
 use std::os::unix::io::RawFd;
 
 pub struct DaemonContainer<'a> {

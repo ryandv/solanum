@@ -51,7 +51,7 @@ mod spec {
     }
 
     fn client_can_complete_a_pomodoro_work_period(client: &client::Client) {
-        let start_response = client.send_message(String::from("START 1 1")).unwrap();
+        client.send_message(String::from("START 1 1")).unwrap();
         sleep(1);
         client.send_message(String::from("STOP")).unwrap();
 

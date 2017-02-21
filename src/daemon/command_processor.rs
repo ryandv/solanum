@@ -2,12 +2,9 @@ use daemon::chrono::Duration;
 use daemon::chrono::datetime::DateTime;
 use daemon::chrono::offset::utc::UTC;
 
-use std::ops::Deref;
-
 use daemon::clock::Clock;
 use daemon::Command;
 use daemon::PomodoroTransitioner;
-use daemon::PomodoroQueryMapper;
 use daemon::pomodoro::PomodoroStatus;
 use daemon::pomodoros::Pomodoros;
 
@@ -145,14 +142,14 @@ mod test {
 
     impl Pomodoros for PomodorosStub {
         fn create(&self,
-                  start_time: DateTime<UTC>,
-                  work_duration: Duration,
-                  break_duration: Duration)
+                  _: DateTime<UTC>,
+                  __: Duration,
+                  ___: Duration)
                   -> Result<(), ()> {
             Ok(())
         }
 
-        fn last(&self, count: usize) -> Result<Vec<Pomodoro>, ()> {
+        fn last(&self, _: usize) -> Result<Vec<Pomodoro>, ()> {
             Ok(Vec::new())
         }
 
@@ -170,7 +167,7 @@ mod test {
             })
         }
 
-        fn update(&self, id: i32, pomodoro: Pomodoro) -> Result<(), ()> {
+        fn update(&self, _: i32, __: Pomodoro) -> Result<(), ()> {
             Ok(())
         }
     }
@@ -210,7 +207,7 @@ mod test {
     #[test]
     fn completes_the_most_recent_pomodoro_if_it_was_in_progress_past_the_work_time_before_creating_a_new_one() {
         let mut scenario = mockers::Scenario::new();
-        let mut pomodoros = scenario.create_mock_for::<Pomodoros>();
+        let pomodoros = scenario.create_mock_for::<Pomodoros>();
         let current_time = "2017-01-01T12:34:56+00:00".parse::<DateTime<UTC>>().unwrap();
         let clock_stub = ClockStub::new(current_time);
         let most_recent_pomodoro = Pomodoro {

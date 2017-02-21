@@ -43,7 +43,7 @@ impl PomodoroTransitioner {
         pomodoro
     }
 
-    fn finish_working(current_time: DateTime<UTC>, pomodoro: Pomodoro) -> Pomodoro {
+    fn finish_working(_: DateTime<UTC>, pomodoro: Pomodoro) -> Pomodoro {
         let mut pomodoro = pomodoro;
         pomodoro.work_end_time = Some(pomodoro.work_start_time + pomodoro.work_length);
         pomodoro.status = PomodoroStatus::BreakPending;
