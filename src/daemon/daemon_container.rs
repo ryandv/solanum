@@ -6,6 +6,7 @@ use daemon::io::CommandEventSubscriber;
 use daemon::io::SignalEventSubscriber;
 use daemon::io::EventPoller;
 use daemon::pomodoros::Pomodoros;
+use daemon::system_clock::SystemClock;
 
 use std::boxed::Box;
 use std::io;
@@ -14,15 +15,16 @@ use std::os::unix::io::RawFd;
 
 pub struct DaemonContainer<'a> {
     event_poller: EventPoller<'a>,
-    command_event_subscriber: CommandEventSubscriber<PomodoroQueryMapper>,
+    command_event_subscriber: CommandEventSubscriber<SystemClock, PomodoroQueryMapper>,
     signal_event_subscriber: SignalEventSubscriber<'a>,
 }
 
 impl<'a> DaemonContainer<'a> {
     pub fn new(signalfd: &'a RawFd) -> io::Result<DaemonContainer<'a>> {
+        let system_clock = SystemClock::new();
         let query_mapper = PomodoroQueryMapper::new();
-        let command_processor = CommandProcessor::new(query_mapper);
-        let command_event_subscriber: CommandEventSubscriber<PomodoroQueryMapper> =
+        let command_processor = CommandProcessor::new(system_clock, query_mapper);
+        let command_event_subscriber: CommandEventSubscriber<SystemClock, PomodoroQueryMapper> =
             try!(CommandEventSubscriber::new(command_processor, mio::Token(0)));
 
         let evented_signalfd = mio::unix::EventedFd(&signalfd);

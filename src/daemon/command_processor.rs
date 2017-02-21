@@ -5,19 +5,24 @@ use self::chrono::offset::utc::UTC;
 
 use std::ops::Deref;
 
+use daemon::clock::Clock;
 use daemon::Command;
 use daemon::PomodoroTransitioner;
 use daemon::PomodoroQueryMapper;
 use daemon::pomodoro::PomodoroStatus;
 use daemon::pomodoros::Pomodoros;
 
-pub struct CommandProcessor<P: Pomodoros> {
+pub struct CommandProcessor<C: Clock, P: Pomodoros> {
+    clock: C,
     pomodoros: P,
 }
 
-impl<P: Pomodoros> CommandProcessor<P> {
-    pub fn new(pomodoros: P) -> CommandProcessor<P> {
-        CommandProcessor { pomodoros: pomodoros }
+impl<C: Clock, P: Pomodoros> CommandProcessor<C, P> {
+    pub fn new(clock: C, pomodoros: P) -> CommandProcessor<C, P> {
+        CommandProcessor {
+            clock: clock,
+            pomodoros: pomodoros,
+        }
     }
 
     pub fn handle_command(&self, command: Command) -> String {
@@ -40,7 +45,7 @@ impl<P: Pomodoros> CommandProcessor<P> {
         let last_pomodoro = pomodoros.most_recent()
             .ok_or(())
             .map(|pomodoro| {
-                let now = UTC::now();
+                let now = self.clock.current_time();
                 let mut updated_pomodoro = PomodoroTransitioner::transition(now, &pomodoro);
                 if updated_pomodoro.status == PomodoroStatus::BreakPending {
                     updated_pomodoro = PomodoroTransitioner::transition(now, &updated_pomodoro);
@@ -66,7 +71,7 @@ impl<P: Pomodoros> CommandProcessor<P> {
         let result = self.pomodoros
             .most_recent()
             .ok_or(())
-            .map(|pomodoro| PomodoroTransitioner::transition(UTC::now(), &pomodoro))
+            .map(|pomodoro| PomodoroTransitioner::transition(self.clock.current_time(), &pomodoro))
             .and_then(|pomodoro| self.pomodoros.update(pomodoro.id, pomodoro));
 
         match result {
@@ -93,7 +98,7 @@ impl<P: Pomodoros> CommandProcessor<P> {
     }
 
     fn handle_status(&self) -> String {
-        let now = UTC::now();
+        let now = self.clock.current_time();
         let last_pomodoro = self.pomodoros.most_recent().ok_or(());
 
         match last_pomodoro {
@@ -130,6 +135,7 @@ mod test {
     use super::chrono::offset::utc::UTC;
 
     use daemon::Command;
+    use daemon::clock::Clock;
     use daemon::pomodoro::Pomodoro;
     use daemon::pomodoro::PomodoroStatus;
     use daemon::pomodoros::Pomodoros;
@@ -174,13 +180,32 @@ mod test {
         }
     }
 
+    struct ClockStub {
+        fake_time: DateTime<UTC>
+    }
+
+    impl ClockStub {
+        fn new(fake_time: DateTime<UTC>) -> ClockStub {
+            ClockStub {
+                fake_time: fake_time,
+            }
+        }
+    }
+
+    impl Clock for ClockStub {
+        fn current_time(&self) -> DateTime<UTC> {
+            self.fake_time
+        }
+    }
+
     #[test]
     fn creates_a_new_pomodoro() {
         let pomodoros_stub = PomodorosStub::new();
-        let processor = CommandProcessor::new(pomodoros_stub);
-        let command = Command::Start("2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap(),
+        let clock_stub = ClockStub::new("2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap());
+        let command = Command::Start(clock_stub.current_time(),
                                      Duration::seconds(5),
                                      Duration::seconds(5));
+        let processor = CommandProcessor::new(clock_stub, pomodoros_stub);
 
         let result = processor.handle_command(command);
 
@@ -214,8 +239,9 @@ mod test {
             tags: String::from(""),
             status: PomodoroStatus::Completed,
         };
+        let clock_stub = ClockStub::new("2017-01-01T12:34:56+00:00".parse::<DateTime<UTC>>().unwrap());
         let command = Command::Start(
-            "2017-01-01T12:34:56+00:00".parse::<DateTime<UTC>>().unwrap(),
+            clock_stub.current_time(),
             Duration::seconds(5),
             Duration::seconds(5)
         );
@@ -230,7 +256,7 @@ mod test {
             and_return(Ok(()))
         );
 
-        let processor = CommandProcessor::new(pomodoros);
+        let processor = CommandProcessor::new(clock_stub, pomodoros);
         processor.handle_command(command);
     }
 }

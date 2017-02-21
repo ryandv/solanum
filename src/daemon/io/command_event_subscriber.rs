@@ -2,6 +2,7 @@ extern crate chrono;
 extern crate mio;
 extern crate mio_uds;
 
+use daemon::clock::Clock;
 use daemon::Command;
 use daemon::CommandProcessor;
 use daemon::io::CanHandle;
@@ -18,16 +19,16 @@ use std::iter::FromIterator;
 use std::net::Shutdown;
 use std::path::Path;
 
-pub struct CommandEventSubscriber<P: Pomodoros> {
+pub struct CommandEventSubscriber<C: Clock, P: Pomodoros> {
     io: UnixListener,
-    command_processor: CommandProcessor<P>,
+    command_processor: CommandProcessor<C, P>,
     token: mio::Token,
 }
 
-impl<P: Pomodoros> CommandEventSubscriber<P> {
-    pub fn new(command_processor: CommandProcessor<P>,
+impl<C: Clock, P: Pomodoros> CommandEventSubscriber<C, P> {
+    pub fn new(command_processor: CommandProcessor<C, P>,
                token: mio::Token)
-               -> io::Result<CommandEventSubscriber<P>> {
+               -> io::Result<CommandEventSubscriber<C, P>> {
         let listener = try!(UnixListener::bind("/tmp/solanum"));
         Ok(CommandEventSubscriber {
             io: listener,
@@ -56,7 +57,7 @@ impl<P: Pomodoros> CommandEventSubscriber<P> {
     }
 }
 
-impl<P: Pomodoros> CanHandle for CommandEventSubscriber<P> {
+impl<C: Clock, P: Pomodoros> CanHandle for CommandEventSubscriber<C, P> {
     fn handle(&self) -> result::Result<io::Result<()>, io::Result<()>> {
         match self.io.accept() {
             Ok(acceptor) => {
@@ -81,7 +82,7 @@ impl<P: Pomodoros> CanHandle for CommandEventSubscriber<P> {
     }
 }
 
-impl<P: Pomodoros> Drop for CommandEventSubscriber<P> {
+impl<C: Clock, P: Pomodoros> Drop for CommandEventSubscriber<C, P> {
     fn drop(&mut self) {
         // TODO: log errors instead of just silently discarding.
         // right now, silently discarding errors to ensure listener is recursively dropped.
