@@ -1,4 +1,5 @@
 extern crate chrono;
+extern crate postgres;
 
 pub mod clock;
 pub mod command;
@@ -9,6 +10,7 @@ pub mod pomodoro;
 pub mod pomodoros;
 pub mod pomodoro_query_mapper;
 pub mod pomodoro_transitioner;
+pub mod result;
 pub mod system_clock;
 
 pub use self::daemon_container::DaemonContainer;

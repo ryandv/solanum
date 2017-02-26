@@ -1,4 +1,3 @@
-extern crate postgres;
 
 use daemon::chrono::Duration;
 use daemon::chrono::datetime::DateTime;
@@ -8,12 +7,15 @@ use daemon::pomodoro::Pomodoro;
 use daemon::pomodoros::Pomodoros;
 use daemon::pomodoro::PomodoroStatus;
 
-use self::postgres::rows;
+use daemon::postgres;
+
+use daemon::result::Error;
+use daemon::result::Result;
 
 use std::iter::FromIterator;
 use std::option::Option;
-use std::result::Result;
-use std::error::Error;
+use std::error::Error as StdError;
+use std::result;
 
 pub struct PomodoroQueryMapper {}
 
@@ -26,7 +28,7 @@ impl PomodoroQueryMapper {
                            start_time: DateTime<UTC>,
                            work_duration: Duration,
                            break_duration: Duration)
-                           -> Result<(), ()> {
+                           -> Result<()> {
         let conn = postgres::Connection::connect("postgres://postgres@localhost:5432/solanum_test",
                                                  postgres::SslMode::None)
             .unwrap();
@@ -59,37 +61,40 @@ impl PomodoroQueryMapper {
             Ok(_) => Ok(()),
             Err(e) => {
                 error!("{}", e.description());
-                Err(())
+                Err(Error::from(e))
             }
         }
     }
 
-    pub fn get_most_recent_pomodoro(&self) -> Result<Pomodoro, ()> {
+    pub fn get_most_recent_pomodoro(&self) -> Result<Option<Pomodoro>> {
         match self.list_most_recent_pomodoros(1) {
             Ok(mut pomodoros) => {
                 if pomodoros.is_empty() {
-                    Err(())
+                    Ok(None)
                 } else {
-                    Ok(pomodoros.remove(0))
+                    Ok(Some(pomodoros.remove(0)))
                 }
+            },
+            Err(e) => {
+                //error!("{}", e.description());
+                Err(Error::from(e))
             }
-            Err(_) => Err(()),
         }
     }
 
-    pub fn list_most_recent_pomodoros(&self, limit: usize) -> Result<Vec<Pomodoro>, ()> {
+    pub fn list_most_recent_pomodoros(&self, limit: usize) -> Result<Vec<Pomodoro>> {
         let conn = postgres::Connection::connect("postgres://postgres@localhost:5432/solanum_test",
                                                  postgres::SslMode::None)
             .unwrap();
 
-        let most_recent_results: rows::Rows = try!((&conn)
+        let most_recent_results: postgres::rows::Rows = try!((&conn)
             .query("SELECT id, work_start_time, work_end_time, break_start_time, \
                     break_end_time, work_length, break_length, status, tags FROM pomodoros \
                     ORDER BY work_start_time DESC",
                    &[])
             .or_else(|err| {
                 error!("{}", err.description());
-                Err(())
+                Err(err)
             }));
 
         Ok(Vec::from_iter(most_recent_results.iter().take(limit).map(|pomodoro| {
@@ -117,7 +122,7 @@ impl PomodoroQueryMapper {
         })))
     }
 
-    pub fn update_pomodoro(&self, id: i32, pomodoro: Pomodoro) -> Result<(), ()> {
+    pub fn update_pomodoro(&self, id: i32, pomodoro: Pomodoro) -> Result<()> {
         let conn = postgres::Connection::connect("postgres://postgres@localhost:5432/solanum_test",
                                                  postgres::SslMode::None)
             .unwrap();
@@ -147,7 +152,7 @@ impl PomodoroQueryMapper {
                        &pomodoro.status.to_string()])
             .or_else(|err| {
                 error!("{}", err.description());
-                Err(())
+                Err(Error::from(err))
             })
             .map(|_| ())
     }
@@ -158,19 +163,19 @@ impl Pomodoros for PomodoroQueryMapper {
               start_time: DateTime<UTC>,
               work_duration: Duration,
               break_duration: Duration)
-              -> Result<(), ()> {
-        self.create_pomodoro(start_time, work_duration, break_duration)
+              -> result::Result<(), ()> {
+        self.create_pomodoro(start_time, work_duration, break_duration).map_err(|_| ())
     }
 
-    fn last(&self, count: usize) -> Result<Vec<Pomodoro>, ()> {
-        self.list_most_recent_pomodoros(count)
+    fn last(&self, count: usize) -> result::Result<Vec<Pomodoro>, ()> {
+        self.list_most_recent_pomodoros(count).map_err(|_| ())
     }
 
     fn most_recent(&self) -> Option<Pomodoro> {
-        self.get_most_recent_pomodoro().ok()
+        self.get_most_recent_pomodoro().ok().and_then(|pomodoro| pomodoro)
     }
 
-    fn update(&self, id: i32, pomodoro: Pomodoro) -> Result<(), ()> {
-        self.update_pomodoro(id, pomodoro)
+    fn update(&self, id: i32, pomodoro: Pomodoro) -> result::Result<(), ()> {
+        self.update_pomodoro(id, pomodoro).map_err(|_| ())
     }
 }
