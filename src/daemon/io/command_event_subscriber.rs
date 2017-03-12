@@ -8,6 +8,8 @@ use daemon::Command;
 use daemon::CommandProcessor;
 use daemon::io::CanHandle;
 use daemon::pomodoros::Pomodoros;
+use daemon::result::Error;
+use daemon::result::Result;
 
 use self::mio_uds::UnixListener;
 use self::mio_uds::UnixStream;
@@ -15,7 +17,7 @@ use self::mio_uds::UnixStream;
 use std::fs;
 use std::io;
 use std::result;
-use std::io::{Error, ErrorKind, Read, Write};
+use std::io::{Error as IOError, ErrorKind, Read, Write};
 use std::iter::FromIterator;
 use std::net::Shutdown;
 use std::path::Path;
@@ -29,13 +31,17 @@ pub struct CommandEventSubscriber<C: Clock, P: Pomodoros> {
 impl<C: Clock, P: Pomodoros> CommandEventSubscriber<C, P> {
     pub fn new(command_processor: CommandProcessor<C, P>,
                token: mio::Token)
-               -> io::Result<CommandEventSubscriber<C, P>> {
-        let listener = try!(UnixListener::bind("/tmp/solanum"));
-        Ok(CommandEventSubscriber {
-            io: listener,
-            command_processor: command_processor,
-            token: token,
-        })
+               -> Result<CommandEventSubscriber<C, P>> {
+        match UnixListener::bind("/tmp/solanum") {
+            Ok(listener) => {
+                Ok(CommandEventSubscriber {
+                    io: listener,
+                    command_processor: command_processor,
+                    token: token,
+                })
+            }
+            Err(e) => Err(Error::from(e))
+        }
     }
 
     fn process_stream(&self, stream: &mut UnixStream) -> io::Result<()> {
@@ -45,9 +51,9 @@ impl<C: Clock, P: Pomodoros> CommandEventSubscriber<C, P> {
             .into_iter()
             .take_while(|codepoint| *codepoint != (0 as u8)));
         let message = try!(String::from_utf8(codepoints)
-            .map_err(|_| Error::new(ErrorKind::InvalidInput, "failed to parse UTF-8 command")));
+            .map_err(|_| IOError::new(ErrorKind::InvalidInput, "failed to parse UTF-8 command")));
         let command = try!(Command::from_string(UTC::now(), message)
-            .map_err(|_| Error::new(ErrorKind::InvalidInput, "failed to parse command string")));
+            .map_err(|_| IOError::new(ErrorKind::InvalidInput, "failed to parse command string")));
 
         let response = self.command_processor.handle_command(command);
 

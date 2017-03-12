@@ -6,6 +6,8 @@ use daemon::io::CommandEventSubscriber;
 use daemon::io::SignalEventSubscriber;
 use daemon::io::EventPoller;
 use daemon::system_clock::SystemClock;
+use daemon::result::Error;
+use daemon::result::Result;
 
 use std::io;
 use std::os::unix::io::RawFd;
@@ -17,7 +19,7 @@ pub struct DaemonContainer<'a> {
 }
 
 impl<'a> DaemonContainer<'a> {
-    pub fn new(signalfd: &'a RawFd) -> io::Result<DaemonContainer<'a>> {
+    pub fn new(signalfd: &'a RawFd) -> Result<DaemonContainer<'a>> {
         let system_clock = SystemClock::new();
         let query_mapper = PomodoroQueryMapper::new();
         let command_processor = CommandProcessor::new(system_clock, query_mapper);
