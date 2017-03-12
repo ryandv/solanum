@@ -1,4 +1,5 @@
 use daemon::io::CanHandle;
+use daemon::result::Result;
 
 use std::io;
 use std::result;
@@ -20,7 +21,7 @@ impl<'a> SignalEventSubscriber<'a> {
 }
 
 impl<'a> CanHandle for SignalEventSubscriber<'a> {
-    fn handle(&self) -> result::Result<io::Result<()>, io::Result<()>> {
+    fn handle(&self) -> result::Result<Result<()>, io::Result<()>> {
         info!("Signal received");
         Err(Ok(()))
     }

@@ -44,7 +44,7 @@ impl<C: Clock, P: Pomodoros> CommandEventSubscriber<C, P> {
         }
     }
 
-    fn process_stream(&self, stream: &mut UnixStream) -> io::Result<()> {
+    fn process_stream(&self, stream: &mut UnixStream) -> Result<()> {
         let mut buf: [u8; 1024] = [0; 1024];
         try!(stream.read(&mut buf));
         let codepoints = Vec::from_iter(buf.to_vec()
@@ -65,7 +65,7 @@ impl<C: Clock, P: Pomodoros> CommandEventSubscriber<C, P> {
 }
 
 impl<C: Clock, P: Pomodoros> CanHandle for CommandEventSubscriber<C, P> {
-    fn handle(&self) -> result::Result<io::Result<()>, io::Result<()>> {
+    fn handle(&self) -> result::Result<Result<()>, io::Result<()>> {
         match self.io.accept() {
             Ok(acceptor) => {
                 match acceptor {
