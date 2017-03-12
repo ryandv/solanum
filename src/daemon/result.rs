@@ -1,5 +1,7 @@
 use daemon;
 
+use daemon::io::mio::channel;
+
 use daemon::command;
 
 use std::io;
@@ -12,8 +14,9 @@ pub type Result<T> = result::Result<T, Error>;
 #[derive(Debug)]
 pub enum Error {
     DbError(daemon::postgres::error::Error),
+    FailedStopError(channel::SendError<bool>),
     IoError(io::Error),
-    MalformedCommandError(CommandError)
+    MalformedCommandError(CommandError),
 }
 
 #[derive(Debug)]
@@ -31,5 +34,11 @@ impl From<daemon::postgres::error::Error> for Error {
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Error {
         Error::IoError(err)
+    }
+}
+
+impl From<channel::SendError<bool>> for Error {
+    fn from(err: channel::SendError<bool>) -> Error {
+        Error::FailedStopError(err)
     }
 }

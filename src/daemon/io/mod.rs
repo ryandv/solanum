@@ -1,4 +1,4 @@
-extern crate mio;
+pub extern crate mio;
 extern crate mio_uds;
 
 pub mod can_handle;
