@@ -87,7 +87,7 @@ unsafe fn open_signalfd<'a>() -> RawFd {
                    0 as libc::c_int)
 }
 
-fn listen_for_events<'a>() -> io::Result<()> {
+fn listen_for_events<'a>() -> daemon::result::Result<()> {
 
     let signalfd: RawFd;
     unsafe {

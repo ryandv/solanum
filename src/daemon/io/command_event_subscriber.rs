@@ -15,8 +15,6 @@ use self::mio_uds::UnixListener;
 use self::mio_uds::UnixStream;
 
 use std::fs;
-use std::io;
-use std::result;
 use std::io::{Error as IOError, ErrorKind, Read, Write};
 use std::iter::FromIterator;
 use std::net::Shutdown;
@@ -65,19 +63,23 @@ impl<C: Clock, P: Pomodoros> CommandEventSubscriber<C, P> {
 }
 
 impl<'a, C: Clock, P: Pomodoros, S: CanSend<bool>> CanHandle<'a, S> for CommandEventSubscriber<C, P> {
-    fn handle(&self, _: S) -> result::Result<Result<()>, io::Result<()>> {
-        match self.io.accept() {
-            Ok(acceptor) => {
+    fn handle(&self, _: S) -> Result<()> {
+        self
+            .io
+            .accept()
+            .map_err(|e| Error::from(e))
+            .and_then(|acceptor| {
                 match acceptor {
-                    Some((mut stream, _)) => Ok(self.process_stream(&mut stream)),
+                    Some((mut stream, _)) => {
+                        self.process_stream(&mut stream)
+                            .map_err(|e| Error::from(e))
+                    }
                     None => {
                         warn!("Expected connection but got none");
-                        Ok(Ok(()))
+                        Ok(())
                     }
                 }
-            }
-            Err(e) => Err(Err(e)),
-        }
+            })
     }
 
     fn token(&self) -> mio::Token {

@@ -5,7 +5,6 @@ use daemon::result::Result;
 
 use std::convert::From;
 use std::io;
-use std::result;
 
 pub trait CanSend<T> {
     fn send(&self, t: T) -> Result<()>;
@@ -18,7 +17,7 @@ impl<bool> CanSend<bool> for mio::channel::Sender<bool> where Error: From<mio::c
 }
 
 pub trait CanHandle<'a, S: CanSend<bool>> {
-    fn handle(&self, s: S) -> result::Result<Result<()>, io::Result<()>>;
+    fn handle(&self, s: S) -> Result<()>;
     fn token(&self) -> mio::Token;
     fn io(&self) -> &mio::Evented;
 }

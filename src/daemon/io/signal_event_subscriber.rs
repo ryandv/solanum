@@ -2,7 +2,6 @@ use daemon::io::{CanHandle, CanSend};
 use daemon::result::Result;
 
 use std::io;
-use std::result;
 
 use super::mio;
 
@@ -21,10 +20,9 @@ impl<'a> SignalEventSubscriber<'a> {
 }
 
 impl<'a, S: CanSend<bool>> CanHandle<'a, S> for SignalEventSubscriber<'a> {
-    fn handle(&self, stop_sender: S) -> result::Result<Result<()>, io::Result<()>> {
+    fn handle(&self, stop_sender: S) -> Result<()> {
         info!("Signal received");
-        stop_sender.send(true);
-        Ok(Ok(()))
+        stop_sender.send(true)
     }
 
     fn token(&self) -> mio::Token {

@@ -1,4 +1,6 @@
 use daemon::io::{CanHandle, CanSend};
+use daemon::result::Error;
+use daemon::result::Result;
 
 use std::io;
 
@@ -32,21 +34,15 @@ impl<'a> EventPoller<'a> {
     /// Repeatedly poll for and handle incoming Events.
     /// Will return Ok if the dameon terminated gracefully after SIGTERM.
     /// Otherwise, will return Err with an Error indicating what happened.
-    pub fn start_polling(&mut self) -> io::Result<()> {
+    pub fn start_polling(&mut self) -> Result<()> {
         let (stop_sender, stop_receiver) = channel::channel::<bool>();
         let stop_token = Token(2);
 
         self.poll.register(&stop_receiver, stop_token, Ready::readable(), PollOpt::edge());
 
         loop {
-            match self.poll.poll(&mut self.events, None) {
-                Ok(_) => {}
-                Err(_) => {
-                    error!("Could not poll for events");
-                    return Err(io::Error::new(io::ErrorKind::InvalidInput,
-                                              "Could not poll for events"));
-                }
-            }
+            self.poll.poll(&mut self.events, None)
+                .map_err(|e| Error::from(e));
 
             for event in self.events.iter() {
                 let mut subscriptions_iter = self.subscriptions.iter();
@@ -54,17 +50,16 @@ impl<'a> EventPoller<'a> {
                 if event.token() == stop_token { return Ok(()); }
 
                 let stop_sender = stop_sender.clone();
-                let handling_result =
-                    subscriptions_iter
-                        .find(|subscription| subscription.token() == event.token())
-                        .ok_or_else(|| {
-                            error!("Unhandled token received");
-                            Err(io::Error::new(io::ErrorKind::InvalidInput,
-                                               "Received event from unknown source"))
-                        })
-                        .and_then(|subscription| {
-                            subscription.handle(stop_sender)
-                        });
+
+                subscriptions_iter
+                    .find(|subscription| subscription.token() == event.token())
+                    .ok_or_else(|| {
+                        error!("Unhandled token received");
+                        Error::from(String::from("Received event from unknown source"))
+                    })
+                    .and_then(|subscription| {
+                        subscription.handle(stop_sender)
+                    });
             }
         }
     }

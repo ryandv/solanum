@@ -9,7 +9,6 @@ use daemon::system_clock::SystemClock;
 use daemon::result::Error;
 use daemon::result::Result;
 
-use std::io;
 use std::os::unix::io::RawFd;
 
 pub struct DaemonContainer<'a> {
@@ -38,7 +37,7 @@ impl<'a> DaemonContainer<'a> {
         })
     }
 
-    pub fn start(&'a mut self) -> io::Result<()> {
+    pub fn start(&'a mut self) -> Result<()> {
         try!(self.event_poller.listen_for(&self.signal_event_subscriber));
         try!(self.event_poller.listen_for(&self.command_event_subscriber));
 
