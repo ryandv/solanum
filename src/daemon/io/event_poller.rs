@@ -2,7 +2,7 @@ use daemon::io::{CanHandle, CanSend};
 
 use std::io;
 
-use super::mio::{channel, Events, Poll, PollOpt, Ready};
+use super::mio::{channel, Events, Poll, PollOpt, Ready, Token};
 
 pub struct EventPoller<'a> {
     poll: Poll,
@@ -34,6 +34,9 @@ impl<'a> EventPoller<'a> {
     /// Otherwise, will return Err with an Error indicating what happened.
     pub fn start_polling(&mut self) -> io::Result<()> {
         let (stop_sender, stop_receiver) = channel::channel::<bool>();
+        let stop_token = Token(2);
+
+        self.poll.register(&stop_receiver, stop_token, Ready::readable(), PollOpt::edge());
 
         loop {
             match self.poll.poll(&mut self.events, None) {
@@ -47,6 +50,9 @@ impl<'a> EventPoller<'a> {
 
             for event in self.events.iter() {
                 let mut subscriptions_iter = self.subscriptions.iter();
+
+                if event.token() == stop_token { return Ok(()); }
+
                 let stop_sender = stop_sender.clone();
                 let handling_result =
                     subscriptions_iter
@@ -59,13 +65,6 @@ impl<'a> EventPoller<'a> {
                         .and_then(|subscription| {
                             subscription.handle(stop_sender)
                         });
-
-                match handling_result {
-                    Ok(_) => {}
-                    Err(e) => {
-                        return e;
-                    }
-                }
             }
         }
     }

@@ -21,9 +21,10 @@ impl<'a> SignalEventSubscriber<'a> {
 }
 
 impl<'a, S: CanSend<bool>> CanHandle<'a, S> for SignalEventSubscriber<'a> {
-    fn handle(&self, _: S) -> result::Result<Result<()>, io::Result<()>> {
+    fn handle(&self, stop_sender: S) -> result::Result<Result<()>, io::Result<()>> {
         info!("Signal received");
-        Err(Ok(()))
+        stop_sender.send(true);
+        Ok(Ok(()))
     }
 
     fn token(&self) -> mio::Token {
