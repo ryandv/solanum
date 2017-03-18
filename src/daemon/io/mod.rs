@@ -7,6 +7,7 @@ pub mod event_poller;
 pub mod signal_event_subscriber;
 
 pub use self::can_handle::CanHandle;
+pub use self::can_handle::CanSend;
 pub use self::command_event_subscriber::CommandEventSubscriber;
 pub use self::event_poller::EventPoller;
 pub use self::signal_event_subscriber::SignalEventSubscriber;
