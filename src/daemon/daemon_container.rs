@@ -6,7 +6,6 @@ use daemon::io::CommandEventSubscriber;
 use daemon::io::SignalEventSubscriber;
 use daemon::io::EventPoller;
 use daemon::system_clock::SystemClock;
-use daemon::result::Error;
 use daemon::result::Result;
 
 use std::os::unix::io::RawFd;

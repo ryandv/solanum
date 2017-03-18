@@ -7,6 +7,8 @@ use daemon::Command;
 use daemon::PomodoroTransitioner;
 use daemon::pomodoro::PomodoroStatus;
 use daemon::pomodoros::Pomodoros;
+use daemon::result::Error;
+use daemon::result::Result;
 
 pub struct CommandProcessor<C: Clock, P: Pomodoros> {
     clock: C,
@@ -21,7 +23,7 @@ impl<C: Clock, P: Pomodoros> CommandProcessor<C, P> {
         }
     }
 
-    pub fn handle_command(&self, command: Command) -> String {
+    pub fn handle_command(&self, command: Command) -> Result<String> {
         match command {
             Command::Start(start_time, work_duration, break_duration) => {
                 self.handle_start(start_time, work_duration, break_duration)
@@ -36,87 +38,78 @@ impl<C: Clock, P: Pomodoros> CommandProcessor<C, P> {
                     start_time: DateTime<UTC>,
                     work_duration: Duration,
                     break_duration: Duration)
-                    -> String {
+                    -> Result<String> {
         let ref pomodoros = self.pomodoros;
-        let last_pomodoro = pomodoros.most_recent()
-            .ok_or(())
-            .map(|pomodoro| {
+        match pomodoros.most_recent() {
+            Some(last_pomodoro) => {
                 let now = self.clock.current_time();
-                let mut updated_pomodoro = PomodoroTransitioner::transition(now, &pomodoro);
+                let mut updated_pomodoro = PomodoroTransitioner::transition(now, &last_pomodoro);
                 if updated_pomodoro.status == PomodoroStatus::BreakPending {
                     updated_pomodoro = PomodoroTransitioner::transition(now, &updated_pomodoro);
                     updated_pomodoro = PomodoroTransitioner::transition(now, &updated_pomodoro);
                 }
-                updated_pomodoro
-            })
-            .and_then(|pomodoro| pomodoros.update(pomodoro.id, pomodoro));
-
-        let new_pomodoro = pomodoros.create(start_time, work_duration, break_duration)
-            .and_then(|_| pomodoros.most_recent().ok_or(()));
-
-        match new_pomodoro {
-            Ok(pomodoro) => {
-                format!("Pomodoro started at {}",
-                        pomodoro.work_start_time.format("%F %H:%M:%S").to_string())
+                try!(pomodoros.update(updated_pomodoro.id, updated_pomodoro));
             }
-            Err(_) => format!("Failed to start pomodoro."),
+            None => {}
         }
-    }
 
-    fn handle_stop(&self) -> String {
-        let result = self.pomodoros
+        try!(pomodoros .create(start_time, work_duration, break_duration));
+        pomodoros
             .most_recent()
-            .ok_or(())
+            .ok_or(Error::from(String::from("Could not get the newly created pomodoro.")))
+            .map(|pomodoro| format!(
+                    "Pomodoro started at {}",
+                    pomodoro.work_start_time.format("%F %H:%M:%S").to_string()
+                    )
+                )
+    }
+
+    fn handle_stop(&self) -> Result<String> {
+        self.pomodoros
+            .most_recent()
+            .ok_or(Error::from(String::from("No pomodoro to stop.")))
             .map(|pomodoro| PomodoroTransitioner::transition(self.clock.current_time(), &pomodoro))
-            .and_then(|pomodoro| self.pomodoros.update(pomodoro.id, pomodoro));
-
-        match result {
-            Ok(_) => String::from("Pomodoro aborted"),
-            Err(_) => String::from("Failed to abort pomodoro"),
-        }
+            .and_then(|pomodoro| self.pomodoros.update(pomodoro.id, pomodoro))
+            .map(|_| String::from("Pomodoro aborted"))
     }
 
-    fn handle_list(&self) -> String {
-        let last_five_pomodoros = self.pomodoros.last(5).and_then(|pomodoros| {
-            Ok(pomodoros.into_iter().fold(String::from(""), |acc, pomodoro| {
-                acc +
-                &format!("[{}]: {} ({})\n",
-                         pomodoro.work_start_time.format("%F %H:%M:%S").to_string(),
-                         pomodoro.status,
-                         pomodoro.tags)
-            }))
-        });
-
-        match last_five_pomodoros {
-            Ok(pomodoro_descriptions) => pomodoro_descriptions,
-            Err(_) => String::from("Unable to list pomodoros"),
-        }
+    fn handle_list(&self) -> Result<String> {
+        self.pomodoros
+            .last(5)
+            .and_then(|pomodoros| {
+                Ok(pomodoros.into_iter().fold(String::from(""), |acc, pomodoro| {
+                    acc +
+                        &format!("[{}]: {} ({})\n",
+                        pomodoro.work_start_time.format("%F %H:%M:%S").to_string(),
+                        pomodoro.status,
+                        pomodoro.tags)
+                }))
+            })
     }
 
-    fn handle_status(&self) -> String {
+    fn handle_status(&self) -> Result<String> {
         let now = self.clock.current_time();
-        let last_pomodoro = self.pomodoros.most_recent().ok_or(());
+        self.pomodoros
+            .most_recent()
+            .ok_or(Error::from(String::from("No pomodoro to get the status of.")))
+            .map(|pomodoro| {
 
-        match last_pomodoro {
-            Ok(pomodoro) => {
                 let work_time_remaining = (pomodoro.work_start_time + pomodoro.work_length) - now;
                 let work_minutes_remaining = work_time_remaining.num_minutes();
                 let work_seconds_remaining = work_time_remaining.num_seconds() -
-                                             work_minutes_remaining * 60;
+                    work_minutes_remaining * 60;
                 let break_time_remaining = pomodoro.break_start_time
                     .map(|start_time| (start_time + pomodoro.break_length) - now)
                     .unwrap_or(pomodoro.break_length);
                 let break_minutes_remaining = break_time_remaining.num_minutes();
                 let break_seconds_remaining = break_time_remaining.num_seconds() -
-                                              break_minutes_remaining * 60;
+                    break_minutes_remaining * 60;
                 format!("{:02}:{:02} | {:02}:{:02}",
                         work_minutes_remaining,
                         work_seconds_remaining,
                         break_minutes_remaining,
                         break_seconds_remaining)
-            }
-            Err(_) => format!("Failed to start pomodoro."),
-        }
+            })
     }
 }
 
@@ -141,11 +134,11 @@ mod test {
     }
 
     impl Pomodoros for PomodorosStub {
-        fn create(&self, _: DateTime<UTC>, __: Duration, ___: Duration) -> Result<(), ()> {
+        fn create(&self, _: DateTime<UTC>, __: Duration, ___: Duration) -> Result<()> {
             Ok(())
         }
 
-        fn last(&self, _: usize) -> Result<Vec<Pomodoro>, ()> {
+        fn last(&self, _: usize) -> Result<Vec<Pomodoro>> {
             Ok(Vec::new())
         }
 
@@ -163,7 +156,7 @@ mod test {
             })
         }
 
-        fn update(&self, _: i32, __: Pomodoro) -> Result<(), ()> {
+        fn update(&self, _: i32, __: Pomodoro) -> Result<()> {
             Ok(())
         }
     }
@@ -194,7 +187,7 @@ mod test {
                                      Duration::seconds(5));
         let processor = CommandProcessor::new(clock_stub, pomodoros_stub);
 
-        let result = processor.handle_command(command);
+        let result = processor.handle_command(command).unwrap();
 
         assert!(result == "Pomodoro started at 2000-01-01 00:00:00");
     }
@@ -244,6 +237,6 @@ mod test {
         );
 
         let processor = CommandProcessor::new(clock_stub, pomodoros);
-        processor.handle_command(command);
+        processor.handle_command(command).unwrap();
     }
 }

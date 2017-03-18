@@ -5,7 +5,6 @@ use daemon::io::mio::channel;
 use daemon::command;
 
 use std::io;
-use std::error;
 use std::result;
 use std::str::Utf8Error;
 use std::string::String;

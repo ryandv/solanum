@@ -1,8 +1,6 @@
 use daemon::io::{CanHandle, CanSend};
 use daemon::result::Result;
 
-use std::io;
-
 use super::mio;
 
 pub struct SignalEventSubscriber<'a> {

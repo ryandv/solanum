@@ -53,11 +53,18 @@ impl<C: Clock, P: Pomodoros> CommandEventSubscriber<C, P> {
         let command = try!(Command::from_string(UTC::now(), message)
             .map_err(|_| IOError::new(ErrorKind::InvalidInput, "failed to parse command string")));
 
-        let response = self.command_processor.handle_command(command);
+        try!(self.command_processor
+            .handle_command(command)
+            .and_then(|response| {
+                let result = stream
+                    .write_all(response.as_bytes())
+                    .and_then(|_| { stream.shutdown(Shutdown::Both) })
+                    .map_err(|e| Error::from(e));
 
-        try!(stream.write_all(response.as_bytes()));
-        try!(stream.shutdown(Shutdown::Both));
-        info!("Handled command");
+                info!("Handled command");
+                result
+            }));
+
         Ok(())
     }
 }

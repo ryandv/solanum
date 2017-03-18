@@ -1,4 +1,4 @@
-use daemon::io::{CanHandle, CanSend};
+use daemon::io::CanHandle;
 use daemon::result::Error;
 use daemon::result::Result;
 
@@ -38,11 +38,11 @@ impl<'a> EventPoller<'a> {
         let (stop_sender, stop_receiver) = channel::channel::<bool>();
         let stop_token = Token(2);
 
-        self.poll.register(&stop_receiver, stop_token, Ready::readable(), PollOpt::edge());
+        try!(self.poll.register(&stop_receiver, stop_token, Ready::readable(), PollOpt::edge()));
 
         loop {
-            self.poll.poll(&mut self.events, None)
-                .map_err(|e| Error::from(e));
+            try!(self.poll.poll(&mut self.events, None)
+                .map_err(|e| Error::from(e)));
 
             for event in self.events.iter() {
                 let mut subscriptions_iter = self.subscriptions.iter();
@@ -51,7 +51,7 @@ impl<'a> EventPoller<'a> {
 
                 let stop_sender = stop_sender.clone();
 
-                subscriptions_iter
+                try!(subscriptions_iter
                     .find(|subscription| subscription.token() == event.token())
                     .ok_or_else(|| {
                         error!("Unhandled token received");
@@ -59,7 +59,7 @@ impl<'a> EventPoller<'a> {
                     })
                     .and_then(|subscription| {
                         subscription.handle(stop_sender)
-                    });
+                    }));
             }
         }
     }

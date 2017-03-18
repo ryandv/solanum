@@ -4,13 +4,12 @@ use daemon::result::Error;
 use daemon::result::Result;
 
 use std::convert::From;
-use std::io;
 
 pub trait CanSend<T> {
     fn send(&self, t: T) -> Result<()>;
 }
 
-impl<bool> CanSend<bool> for mio::channel::Sender<bool> where Error: From<mio::channel::SendError<bool>> {
+impl CanSend<bool> for mio::channel::Sender<bool> where Error: From<mio::channel::SendError<bool>> {
     fn send(&self, t: bool) -> Result<()> {
         self.send(t).map_err(|e| Error::from(e))
     }

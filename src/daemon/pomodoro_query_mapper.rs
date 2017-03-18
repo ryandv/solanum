@@ -15,7 +15,6 @@ use daemon::result::Result;
 use std::iter::FromIterator;
 use std::option::Option;
 use std::error::Error as StdError;
-use std::result;
 
 pub struct PomodoroQueryMapper {}
 
@@ -163,19 +162,19 @@ impl Pomodoros for PomodoroQueryMapper {
               start_time: DateTime<UTC>,
               work_duration: Duration,
               break_duration: Duration)
-              -> result::Result<(), ()> {
-        self.create_pomodoro(start_time, work_duration, break_duration).map_err(|_| ())
+              -> Result<()> {
+        self.create_pomodoro(start_time, work_duration, break_duration)
     }
 
-    fn last(&self, count: usize) -> result::Result<Vec<Pomodoro>, ()> {
-        self.list_most_recent_pomodoros(count).map_err(|_| ())
+    fn last(&self, count: usize) -> Result<Vec<Pomodoro>> {
+        self.list_most_recent_pomodoros(count)
     }
 
     fn most_recent(&self) -> Option<Pomodoro> {
         self.get_most_recent_pomodoro().ok().and_then(|pomodoro| pomodoro)
     }
 
-    fn update(&self, id: i32, pomodoro: Pomodoro) -> result::Result<(), ()> {
-        self.update_pomodoro(id, pomodoro).map_err(|_| ())
+    fn update(&self, id: i32, pomodoro: Pomodoro) -> Result<()> {
+        self.update_pomodoro(id, pomodoro)
     }
 }
