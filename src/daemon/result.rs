@@ -12,7 +12,7 @@ pub type Result<T> = result::Result<T, Error>;
 pub enum Error {
     DbError(daemon::postgres::error::Error),
     FailedStopError(channel::SendError<bool>),
-    InternalError(String),
+    GenericError(String),
     IoError(io::Error),
     CommandFromUtf8Error(FromUtf8Error),
 }
@@ -37,7 +37,7 @@ impl From<channel::SendError<bool>> for Error {
 
 impl From<String> for Error {
     fn from(err: String) -> Error {
-        Error::InternalError(err)
+        Error::GenericError(err)
     }
 }
 
