@@ -15,7 +15,7 @@ use self::mio_uds::UnixListener;
 use self::mio_uds::UnixStream;
 
 use std::fs;
-use std::io::{Error as IOError, ErrorKind, Read, Write};
+use std::io::{Read, Write};
 use std::iter::FromIterator;
 use std::net::Shutdown;
 use std::path::Path;
@@ -48,10 +48,8 @@ impl<C: Clock, P: Pomodoros> CommandEventSubscriber<C, P> {
         let codepoints = Vec::from_iter(buf.to_vec()
             .into_iter()
             .take_while(|codepoint| *codepoint != (0 as u8)));
-        let message = try!(String::from_utf8(codepoints)
-            .map_err(|_| IOError::new(ErrorKind::InvalidInput, "failed to parse UTF-8 command")));
-        let command = try!(Command::from_string(UTC::now(), message)
-            .map_err(|_| IOError::new(ErrorKind::InvalidInput, "failed to parse command string")));
+        let message = try!(String::from_utf8(codepoints));
+        let command = try!(Command::from_string(UTC::now(), message));
 
         try!(self.command_processor
             .handle_command(command)
