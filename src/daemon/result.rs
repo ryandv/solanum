@@ -2,8 +2,6 @@ use daemon;
 
 use daemon::io::mio::channel;
 
-use daemon::command;
-
 use std::io;
 use std::result;
 use std::string::{FromUtf8Error, String};
@@ -16,7 +14,6 @@ pub enum Error {
     FailedStopError(channel::SendError<bool>),
     InternalError(String),
     IoError(io::Error),
-    InvalidCommandError(command::InvalidCommandString),
     CommandFromUtf8Error(FromUtf8Error),
 }
 
@@ -41,12 +38,6 @@ impl From<channel::SendError<bool>> for Error {
 impl From<String> for Error {
     fn from(err: String) -> Error {
         Error::InternalError(err)
-    }
-}
-
-impl From<command::InvalidCommandString> for Error {
-    fn from(err: command::InvalidCommandString) -> Error {
-        Error::InvalidCommandError(err)
     }
 }
 

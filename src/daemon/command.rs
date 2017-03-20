@@ -3,12 +3,14 @@ extern crate regex;
 use daemon::chrono::Duration;
 use daemon::chrono::datetime::DateTime;
 use daemon::chrono::offset::utc::UTC;
+use daemon::result::Error;
+use daemon::result::Result;
 
 use std::fmt::Display;
 use std::fmt::Error as FmtError;
 use std::fmt::Formatter;
 use std::iter::FromIterator;
-use std::error::Error;
+use std::result::Result as StdResult;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Command {
@@ -19,7 +21,7 @@ pub enum Command {
 }
 
 impl Display for Command {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+    fn fmt(&self, f: &mut Formatter) -> StdResult<(), FmtError> {
         match *self {
             Command::Start(start_time, work_duration, break_duration, ref tags) => {
                 let tags_csv = tags.into_iter().fold(String::from(""), |acc, tag| format!("{}{},", acc, tag));
@@ -33,33 +35,10 @@ impl Display for Command {
     }
 }
 
-#[derive(Debug)]
-pub struct InvalidCommandString {
-    command_string: String,
-}
-
-impl InvalidCommandString {
-    pub fn new(command_string: String) -> InvalidCommandString {
-        InvalidCommandString { command_string: format!("Invalid command: {}", command_string) }
-    }
-}
-
-impl Display for InvalidCommandString {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
-        write!(f, "{}", self.command_string)
-    }
-}
-
-impl Error for InvalidCommandString {
-    fn description(&self) -> &str {
-        &self.command_string
-    }
-}
-
 impl Command {
     pub fn from_string(current_time: DateTime<UTC>,
                        string: String)
-                       -> Result<Command, InvalidCommandString> {
+                       -> Result<Command> {
         let start_re = regex::Regex::new(r"^START(?: tags ((?:\w+,)*(?:\w+)))?(?: (\d+) (\d+))?")
             .unwrap();
         if start_re.is_match(string.as_str()) {
@@ -96,7 +75,7 @@ impl Command {
         } else if string == "STATUS" {
             Ok(Command::Status)
         } else {
-            Err(InvalidCommandString::new(string))
+            Err(Error::from(format!("Invalid command string: {}", string)))
         }
     }
 }
