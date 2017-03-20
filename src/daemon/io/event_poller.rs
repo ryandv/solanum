@@ -45,9 +45,9 @@ impl<'a> EventPoller<'a> {
                 .map_err(|e| Error::from(e)));
 
             for event in self.events.iter() {
-                let mut subscriptions_iter = self.subscriptions.iter();
-
                 if event.token() == stop_token { return Ok(()); }
+
+                let mut subscriptions_iter = self.subscriptions.iter();
 
                 let stop_sender = stop_sender.clone();
 
