@@ -25,7 +25,7 @@ impl<C: Clock, P: Pomodoros> CommandProcessor<C, P> {
 
     pub fn handle_command(&self, command: Command) -> Result<String> {
         match command {
-            Command::Start(start_time, work_duration, break_duration) => {
+            Command::Start(start_time, work_duration, break_duration, _) => {
                 self.handle_start(start_time, work_duration, break_duration)
             }
             Command::Stop => self.handle_stop(),
@@ -184,7 +184,8 @@ mod test {
             ClockStub::new("2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap());
         let command = Command::Start(clock_stub.current_time(),
                                      Duration::seconds(5),
-                                     Duration::seconds(5));
+                                     Duration::seconds(5),
+                                     vec![]);
         let processor = CommandProcessor::new(clock_stub, pomodoros_stub);
 
         let result = processor.handle_command(command).unwrap();
@@ -212,7 +213,7 @@ mod test {
             None,
             PomodoroStatus::Aborted,
         );
-        let command = Command::Start(current_time, Duration::seconds(5), Duration::seconds(5));
+        let command = Command::Start(current_time, Duration::seconds(5), Duration::seconds(5), vec![]);
 
         scenario.expect(pomodoros.most_recent_call()
             .and_return_clone(Some(most_recent_pomodoro))
@@ -252,7 +253,7 @@ mod test {
             Some(current_time),
             PomodoroStatus::Completed,
         );
-        let command = Command::Start(current_time, Duration::seconds(5), Duration::seconds(5));
+        let command = Command::Start(current_time, Duration::seconds(5), Duration::seconds(5), vec![]);
 
         scenario.expect(pomodoros.most_recent_call()
             .and_return_clone(Some(most_recent_pomodoro))
