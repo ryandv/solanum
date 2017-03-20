@@ -148,6 +148,22 @@ mod test {
     }
 
     #[test]
+    fn can_parse_start_commands_with_tags_and_custom_durations() {
+        let current_time = "2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap();
+        let string = String::from("START tags foo,bar,baz 23 42");
+
+        let command = Command::from_string(current_time, string);
+
+        assert!(command.unwrap() ==
+                Command::Start(
+                    current_time,
+                    Duration::seconds(23),
+                    Duration::seconds(42),
+                    vec![String::from("foo"), String::from("bar"), String::from("baz")])
+                );
+    }
+
+    #[test]
     fn can_parse_status_commands() {
         let current_time = "2000-01-01T00:00:00+00:00".parse::<DateTime<UTC>>().unwrap();
         let string = String::from("STATUS");
