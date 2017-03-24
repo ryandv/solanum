@@ -10,11 +10,18 @@ pub type Result<T> = result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Error {
+    DbConnectError(daemon::postgres::error::ConnectError),
     DbError(daemon::postgres::error::Error),
     FailedStopError(channel::SendError<bool>),
     GenericError(String),
     IoError(io::Error),
     CommandFromUtf8Error(FromUtf8Error),
+}
+
+impl From<daemon::postgres::error::ConnectError> for Error {
+    fn from(err: daemon::postgres::error::ConnectError) -> Error {
+        Error::DbConnectError(err)
+    }
 }
 
 impl From<daemon::postgres::error::Error> for Error {

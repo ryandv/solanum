@@ -28,9 +28,7 @@ impl PomodoroQueryMapper {
                            work_duration: Duration,
                            break_duration: Duration)
                            -> Result<()> {
-        let conn = postgres::Connection::connect("postgres://postgres@localhost:5432/solanum_test",
-                                                 postgres::SslMode::None)
-            .unwrap();
+        let conn = try!(self.acquire_connection());
         let work_length = work_duration.num_seconds();
         let break_length = break_duration.num_seconds();
         let result = conn.execute("INSERT INTO pomodoros(
@@ -82,9 +80,7 @@ impl PomodoroQueryMapper {
     }
 
     pub fn list_most_recent_pomodoros(&self, limit: usize) -> Result<Vec<Pomodoro>> {
-        let conn = postgres::Connection::connect("postgres://postgres@localhost:5432/solanum_test",
-                                                 postgres::SslMode::None)
-            .unwrap();
+        let conn = try!(self.acquire_connection());
 
         let most_recent_results: postgres::rows::Rows = try!((&conn)
             .query("SELECT id, work_start_time, work_end_time, break_start_time, \
@@ -122,9 +118,8 @@ impl PomodoroQueryMapper {
     }
 
     pub fn update_pomodoro(&self, id: i32, pomodoro: Pomodoro) -> Result<()> {
-        let conn = postgres::Connection::connect("postgres://postgres@localhost:5432/solanum_test",
-                                                 postgres::SslMode::None)
-            .unwrap();
+        let conn = try!(self.acquire_connection());
+
         (&conn)
             .execute("UPDATE pomodoros SET
                     work_start_time = $2,
@@ -154,6 +149,11 @@ impl PomodoroQueryMapper {
                 Err(Error::from(err))
             })
             .map(|_| ())
+    }
+
+    fn acquire_connection(&self) -> Result<postgres::Connection> {
+        postgres::Connection::connect("postgres://postgres@localhost:5432/solanum_test", postgres::SslMode::None)
+            .map_err(|e| Error::from(e))
     }
 }
 
