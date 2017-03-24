@@ -2,6 +2,8 @@ use daemon;
 
 use daemon::io::mio::channel;
 
+use std::fmt;
+use std::fmt::Debug;
 use std::io;
 use std::result;
 use std::string::{FromUtf8Error, String};
@@ -16,6 +18,19 @@ pub enum Error {
     GenericError(String),
     IoError(io::Error),
     CommandFromUtf8Error(FromUtf8Error),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> result::Result<(), fmt::Error> {
+        match *self {
+            Error::DbConnectError(ref e) => write!(f, "Database connection error: {}", e),
+            Error::DbError(ref e) => write!(f, "Database error: {}", e),
+            Error::FailedStopError(_) => write!(f, "Failed to stop polling for events."),
+            Error::GenericError(ref e) => write!(f, "{}", e),
+            Error::IoError(ref e) => write!(f, "IO error: {}", e),
+            Error::CommandFromUtf8Error(ref e) => write!(f, "Could not parse command from UTF-8: {}", e)
+        }
+    }
 }
 
 impl From<daemon::postgres::error::ConnectError> for Error {

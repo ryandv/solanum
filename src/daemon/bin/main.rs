@@ -1,3 +1,4 @@
+#[macro_use]
 extern crate log;
 extern crate log4rs;
 extern crate nix;
@@ -94,20 +95,29 @@ fn listen_for_events<'a>() -> daemon::result::Result<()> {
         signalfd = open_signalfd();
     }
 
-    let mut container = daemon::DaemonContainer::new(&signalfd).unwrap();
+    let mut container = try!(daemon::DaemonContainer::new(&signalfd));
     container.start()
 }
 
 fn main() {
     // TODO: currently here because daemon chdir's to / and don't want to resolve the relative path
     // at the moment.
-    log4rs::init_file("config/log4rs.yaml", Default::default()).unwrap();
+    let _ = log4rs::init_file("config/log4rs.yaml", Default::default()).or_else(|e| {
+        error!("{}", e);
+        Err(e)
+    });
 
     unsafe {
         daemonize();
     }
 
-    listen_for_events().unwrap();
+    let _ = listen_for_events().or_else(|e| {
+        error!("{}", e);
+        Err(e)
+    });
 
-    fs::remove_file(Path::new("/tmp/solanum.pid")).unwrap();
+    let _ = fs::remove_file(Path::new("/tmp/solanum.pid")).or_else(|e| {
+        error!("{}", e);
+        Err(e)
+    });
 }
