@@ -6,7 +6,7 @@ use daemon::chrono::offset::utc::UTC;
 use daemon::clock::Clock;
 use daemon::Command;
 use daemon::CommandProcessor;
-use daemon::io::{CanHandle, CanSend};
+use daemon::io::{EventSubscriber, CanSend};
 use daemon::pomodoros::Pomodoros;
 use daemon::result::Error;
 use daemon::result::Result;
@@ -67,7 +67,7 @@ impl<C: Clock, P: Pomodoros> CommandEventSubscriber<C, P> {
     }
 }
 
-impl<'a, C: Clock, P: Pomodoros, S: CanSend<bool>> CanHandle<'a, S> for CommandEventSubscriber<C, P> {
+impl<'a, C: Clock, P: Pomodoros, S: CanSend<bool>> EventSubscriber<'a, S> for CommandEventSubscriber<C, P> {
     fn handle(&self, _: S) -> Result<()> {
         self
             .io

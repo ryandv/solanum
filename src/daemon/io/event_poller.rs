@@ -1,4 +1,4 @@
-use daemon::io::CanHandle;
+use daemon::io::EventSubscriber;
 use daemon::result::Error;
 use daemon::result::Result;
 
@@ -9,7 +9,7 @@ use super::mio::{channel, Events, Poll, PollOpt, Ready, Token};
 pub struct EventPoller<'a> {
     poll: Poll,
     events: Events,
-    subscriptions: Vec<&'a CanHandle<'a, channel::Sender<bool>>>,
+    subscriptions: Vec<&'a EventSubscriber<'a, channel::Sender<bool>>>,
 }
 
 impl<'a> EventPoller<'a> {
@@ -22,7 +22,7 @@ impl<'a> EventPoller<'a> {
         })
     }
 
-    pub fn listen_for(&mut self, subscriber: &'a CanHandle<'a, channel::Sender<bool>>) -> io::Result<()>
+    pub fn listen_for(&mut self, subscriber: &'a EventSubscriber<'a, channel::Sender<bool>>) -> io::Result<()>
     {
         self.subscriptions.push(subscriber);
         self.poll.register(subscriber.io(),

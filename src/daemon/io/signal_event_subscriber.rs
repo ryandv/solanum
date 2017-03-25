@@ -1,4 +1,4 @@
-use daemon::io::{CanHandle, CanSend};
+use daemon::io::{EventSubscriber, CanSend};
 use daemon::result::Result;
 
 use super::mio;
@@ -17,7 +17,7 @@ impl<'a> SignalEventSubscriber<'a> {
     }
 }
 
-impl<'a, S: CanSend<bool>> CanHandle<'a, S> for SignalEventSubscriber<'a> {
+impl<'a, S: CanSend<bool>> EventSubscriber<'a, S> for SignalEventSubscriber<'a> {
     fn handle(&self, stop_sender: S) -> Result<()> {
         info!("Signal received");
         stop_sender.send(true)
