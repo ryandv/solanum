@@ -88,13 +88,7 @@ unsafe fn open_signalfd<'a>() -> RawFd {
                    0 as libc::c_int)
 }
 
-fn listen_for_events<'a>() -> daemon::result::Result<()> {
-
-    let signalfd: RawFd;
-    unsafe {
-        signalfd = open_signalfd();
-    }
-
+fn start_daemon_container<'a>(signalfd: RawFd) -> daemon::result::Result<()> {
     let mut container = try!(daemon::DaemonContainer::new(&signalfd));
     container.start()
 }
@@ -107,11 +101,14 @@ fn main() {
         Err(e)
     });
 
+    let signalfd: RawFd;
+
     unsafe {
         daemonize();
+        signalfd = open_signalfd();
     }
 
-    let _ = listen_for_events().or_else(|e| {
+    let _ = start_daemon_container(signalfd).or_else(|e| {
         error!("{}", e);
         Err(e)
     });
