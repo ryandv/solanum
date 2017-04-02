@@ -27,20 +27,16 @@ pub struct CommandEventSubscriber<C: Clock, P: Pomodoros> {
 }
 
 impl<C: Clock, P: Pomodoros> CommandEventSubscriber<C, P> {
-    pub fn new(command_processor: CommandProcessor<C, P>,
+    pub fn new(listener: UnixListener,
+               command_processor: CommandProcessor<C, P>,
                token: mio::Token)
-               -> Result<CommandEventSubscriber<C, P>> {
-        match UnixListener::bind("/tmp/solanum") {
-            Ok(listener) => {
-                Ok(CommandEventSubscriber {
-                    io: listener,
-                    command_processor: command_processor,
-                    token: token,
-                })
-            }
-            Err(e) => Err(Error::from(e))
+        -> Result<CommandEventSubscriber<C, P>> {
+            Ok(CommandEventSubscriber {
+                io: listener,
+                command_processor: command_processor,
+                token: token,
+            })
         }
-    }
 
     fn process_stream(&self, stream: &mut UnixStream) -> Result<()> {
         let mut buf: [u8; 1024] = [0; 1024];

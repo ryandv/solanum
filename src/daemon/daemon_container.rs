@@ -1,4 +1,5 @@
 use daemon::io::mio;
+use daemon::io::mio_uds;
 
 use daemon::CommandProcessor;
 use daemon::PomodoroQueryMapper;
@@ -21,8 +22,9 @@ impl<'a> DaemonContainer<'a> {
         let system_clock = SystemClock::new();
         let query_mapper = PomodoroQueryMapper::new();
         let command_processor = CommandProcessor::new(system_clock, query_mapper);
+        let uds_listener = try!(mio_uds::UnixListener::bind("/tmp/solanum"));
         let command_event_subscriber: CommandEventSubscriber<SystemClock, PomodoroQueryMapper> =
-            try!(CommandEventSubscriber::new(command_processor, mio::Token(0)));
+            try!(CommandEventSubscriber::new(uds_listener, command_processor, mio::Token(0)));
 
         let evented_signalfd = mio::unix::EventedFd(&signalfd);
         let signalfd_subscriber = SignalEventSubscriber::new(evented_signalfd, mio::Token(1));

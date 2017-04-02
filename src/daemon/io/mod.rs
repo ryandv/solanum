@@ -1,5 +1,5 @@
 pub extern crate mio;
-extern crate mio_uds;
+pub extern crate mio_uds;
 
 pub mod event_subscriber;
 pub mod command_event_subscriber;
