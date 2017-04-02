@@ -2,6 +2,7 @@ use daemon::io::EventSubscriber;
 use daemon::result::Error;
 use daemon::result::Result;
 
+use std::collections::HashMap;
 use std::io;
 
 use super::mio::{channel, Events, Poll, PollOpt, Ready, Token};
@@ -9,7 +10,7 @@ use super::mio::{channel, Events, Poll, PollOpt, Ready, Token};
 pub struct EventPoller<'a> {
     poll: Poll,
     events: Events,
-    subscriptions: Vec<&'a EventSubscriber<'a, channel::Sender<bool>>>,
+    subscriptions: HashMap<Token, &'a EventSubscriber<'a, channel::Sender<bool>>>,
 }
 
 impl<'a> EventPoller<'a> {
@@ -18,13 +19,13 @@ impl<'a> EventPoller<'a> {
         Ok(EventPoller {
             poll: poll,
             events: Events::with_capacity(1024),
-            subscriptions: Vec::new(),
+            subscriptions: HashMap::new(),
         })
     }
 
     pub fn listen_for(&mut self, subscriber: &'a EventSubscriber<'a, channel::Sender<bool>>) -> io::Result<()>
     {
-        self.subscriptions.push(subscriber);
+        self.subscriptions.insert(subscriber.token(), subscriber);
         self.poll.register(subscriber.io(),
                            subscriber.token(),
                            Ready::readable(),
@@ -47,19 +48,12 @@ impl<'a> EventPoller<'a> {
             for event in self.events.iter() {
                 if event.token() == stop_token { return Ok(()); }
 
-                let mut subscriptions_iter = self.subscriptions.iter();
-
                 let stop_sender = stop_sender.clone();
 
-                try!(subscriptions_iter
-                    .find(|subscription| subscription.token() == event.token())
-                    .ok_or_else(|| {
-                        error!("Unhandled token received");
-                        Error::from(String::from("Received event from unknown source"))
-                    })
-                    .and_then(|subscription| {
-                        subscription.handle(stop_sender)
-                    }));
+                try!(self.subscriptions
+                    .get(&event.token())
+                    .ok_or(Error::from(String::from("Received event from unknown source")))
+                    .and_then(|subscriber| subscriber.handle(stop_sender)));
             }
         }
     }
