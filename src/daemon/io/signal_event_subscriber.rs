@@ -8,6 +8,8 @@ pub struct SignalEventSubscriber<'a> {
     token: mio::Token,
 }
 
+unsafe impl<'a> Sync for SignalEventSubscriber<'a> { }
+
 impl<'a> SignalEventSubscriber<'a> {
     pub fn new(io: mio::unix::EventedFd, token: mio::Token) -> SignalEventSubscriber {
         SignalEventSubscriber {

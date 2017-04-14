@@ -26,6 +26,8 @@ pub struct CommandEventSubscriber<C: Clock, P: Pomodoros> {
     token: mio::Token,
 }
 
+unsafe impl<C: Clock + Sync, P: Pomodoros + Sync> Sync for CommandEventSubscriber<C, P> { }
+
 impl<C: Clock, P: Pomodoros> CommandEventSubscriber<C, P> {
     pub fn new(listener: UnixListener,
                command_processor: CommandProcessor<C, P>,
