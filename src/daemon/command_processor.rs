@@ -24,6 +24,7 @@ impl<C: Clock, P: Pomodoros> CommandProcessor<C, P> {
     }
 
     pub fn handle_command(&self, command: Command) -> Result<String> {
+        info!("Handling command: {}", command);
         match command {
             Command::Start(start_time, work_duration, break_duration, _) => {
                 self.handle_start(start_time, work_duration, break_duration)

@@ -1,4 +1,5 @@
 extern crate chrono;
+extern crate crossbeam;
 extern crate postgres;
 
 pub mod clock;
