@@ -66,7 +66,7 @@ impl<C: Clock, P: Pomodoros> CommandEventSubscriber<C, P> {
 }
 
 impl<'a, C: Clock, P: Pomodoros, S: CanSend<bool>> EventSubscriber<'a, S> for CommandEventSubscriber<C, P> {
-    fn handle(&self, _: S) -> Result<()> {
+    fn handle(&self, stop_sender: S) -> () {
         self
             .io
             .accept()
@@ -83,6 +83,8 @@ impl<'a, C: Clock, P: Pomodoros, S: CanSend<bool>> EventSubscriber<'a, S> for Co
                     }
                 }
             })
+            .or_else(|_| stop_sender.send(true))
+            .unwrap();
     }
 
     fn token(&self) -> mio::Token {

@@ -1,5 +1,4 @@
 use daemon::io::{EventSubscriber, CanSend};
-use daemon::result::Result;
 
 use super::mio;
 
@@ -20,9 +19,9 @@ impl<'a> SignalEventSubscriber<'a> {
 }
 
 impl<'a, S: CanSend<bool>> EventSubscriber<'a, S> for SignalEventSubscriber<'a> {
-    fn handle(&self, stop_sender: S) -> Result<()> {
+    fn handle(&self, stop_sender: S) -> () {
         info!("Signal received");
-        stop_sender.send(true)
+        stop_sender.send(true).unwrap();
     }
 
     fn token(&self) -> mio::Token {

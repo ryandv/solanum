@@ -3,40 +3,10 @@ use daemon::io::EventSubscriber;
 use daemon::result::Error;
 use daemon::result::Result;
 
-use std::boxed::Box;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io;
-use std::mem;
-use std::ops::Deref;
 
 use super::mio::{channel, Events, Poll, PollOpt, Ready, Token};
-
-trait Deferred<T> {
-    fn resolve(self: Box<Self>) -> T;
-}
-
-struct ImmediateDeferred<T> {
-    value: T
-}
-
-impl<T> ImmediateDeferred<T> {
-    pub fn new(value: T) -> ImmediateDeferred<T> {
-        ImmediateDeferred { value: value }
-    }
-}
-
-impl<T> Deferred<T> for ImmediateDeferred<T> {
-    fn resolve(self: Box<Self>) -> T {
-        self.value
-    }
-}
-
-impl<T> Deferred<T> for crossbeam::ScopedJoinHandle<T> {
-    fn resolve(self: Box<Self>) -> T {
-        self.join()
-    }
-}
 
 pub struct EventPoller<'a> {
     poll: Poll,
@@ -72,8 +42,6 @@ impl<'a> EventPoller<'a> {
 
         try!(self.poll.register(&stop_receiver, stop_token, Ready::readable(), PollOpt::edge()));
 
-        let mut boxed_deferreds: Vec<Box<Deferred<Result<()>>>> = vec![];
-
         crossbeam::scope(|scope| {
             'outer: loop {
                 try!(self.poll.poll(&mut self.events, None)
@@ -82,17 +50,15 @@ impl<'a> EventPoller<'a> {
                 for event in self.events.iter() {
                     if event.token() == stop_token {
                         info!("Received SIGINT");
-                        boxed_deferreds.push(Box::new(ImmediateDeferred::new(Err(Error::from(String::from("Received SIGINT"))))));
                         break 'outer;
                     }
 
                     let stop_sender = stop_sender.clone();
 
                     match self.subscriptions.get(&event.token()) {
-                        Some(subscriber) => { boxed_deferreds.push(Box::new(scope.spawn(move || subscriber.handle(stop_sender)))); },
+                        Some(subscriber) => { scope.spawn(move || subscriber.handle(stop_sender)); },
                         None => {
                             info!("Received event from unknown source");
-                            boxed_deferreds.push(Box::new(ImmediateDeferred::new(Err(Error::from(String::from("Received event from unknown source"))))));
                             break 'outer;
                         }
                     };
@@ -100,15 +66,7 @@ impl<'a> EventPoller<'a> {
             };
 
             info!("Exiting event loop soon");
-
-            let mut iter = boxed_deferreds.into_iter();
-            let results: Result<Vec<()>> = iter.filter_map(|deferred| {
-                match deferred.resolve() {
-                    Ok(_) => None,
-                    Err(e) => Some(Err(e))
-                }
-            }).take(1).collect();
-            return results.map(|_| ());
+            Ok(())
         })
     }
 }

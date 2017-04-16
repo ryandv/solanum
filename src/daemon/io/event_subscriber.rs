@@ -16,7 +16,7 @@ impl CanSend<bool> for mio::channel::Sender<bool> where Error: From<mio::channel
 }
 
 pub trait EventSubscriber<'a, S: CanSend<bool>> {
-    fn handle(&self, s: S) -> Result<()>;
+    fn handle(&self, s: S) -> ();
     fn token(&self) -> mio::Token;
     fn io(&self) -> &mio::Evented;
 }

@@ -3,7 +3,6 @@ use daemon;
 use daemon::io::mio::channel;
 
 use std::fmt;
-use std::fmt::Debug;
 use std::io;
 use std::result;
 use std::string::{FromUtf8Error, String};
