@@ -13,28 +13,28 @@ use std::ops::Deref;
 use super::mio::{channel, Events, Poll, PollOpt, Ready, Token};
 
 trait Deferred<T> {
-    fn resolve(self: Box<Self>) -> Option<T>;
+    fn resolve(self: Box<Self>) -> T;
 }
 
 struct ImmediateDeferred<T> {
-    value: Option<T>
+    value: T
 }
 
 impl<T> ImmediateDeferred<T> {
     pub fn new(value: T) -> ImmediateDeferred<T> {
-        ImmediateDeferred { value: Some(value) }
+        ImmediateDeferred { value: value }
     }
 }
 
 impl<T> Deferred<T> for ImmediateDeferred<T> {
-    fn resolve(self: Box<Self>) -> Option<T> {
+    fn resolve(self: Box<Self>) -> T {
         self.value
     }
 }
 
 impl<T> Deferred<T> for crossbeam::ScopedJoinHandle<T> {
-    fn resolve(self: Box<Self>) -> Option<T> {
-        Some(self.join())
+    fn resolve(self: Box<Self>) -> T {
+        self.join()
     }
 }
 
@@ -79,7 +79,6 @@ impl<'a> EventPoller<'a> {
                 try!(self.poll.poll(&mut self.events, None)
                      .map_err(|e| Error::from(e)));
 
-
                 for event in self.events.iter() {
                     if event.token() == stop_token {
                         info!("Received SIGINT");
@@ -104,7 +103,7 @@ impl<'a> EventPoller<'a> {
 
             let mut iter = boxed_deferreds.into_iter();
             let results: Result<Vec<()>> = iter.filter_map(|deferred| {
-                match deferred.resolve().unwrap() {
+                match deferred.resolve() {
                     Ok(_) => None,
                     Err(e) => Some(Err(e))
                 }
