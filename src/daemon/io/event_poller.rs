@@ -49,7 +49,7 @@ impl<'a> EventPoller<'a> {
 
                 for event in self.events.iter() {
                     if event.token() == stop_token {
-                        info!("Received SIGINT");
+                        info!("Received stop message");
                         break 'outer;
                     }
 
@@ -58,7 +58,7 @@ impl<'a> EventPoller<'a> {
                     match self.subscriptions.get(&event.token()) {
                         Some(subscriber) => { scope.spawn(move || subscriber.handle(stop_sender)); },
                         None => {
-                            info!("Received event from unknown source");
+                            warn!("Received event from unknown source");
                             break 'outer;
                         }
                     };
