@@ -2,6 +2,8 @@ extern crate chrono;
 extern crate crossbeam;
 extern crate postgres;
 
+#[cfg(test)] extern crate mockers_derive;
+
 pub mod clock;
 pub mod command;
 pub mod command_processor;

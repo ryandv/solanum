@@ -1,5 +1,4 @@
-#![feature(plugin, custom_derive)]
-#![plugin(mockers_macros)]
+#![feature(plugin, use_extern_macros)]
 
 #[cfg(test)]
 extern crate mockers;

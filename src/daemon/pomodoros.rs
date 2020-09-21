@@ -8,7 +8,8 @@ use daemon::result::Result;
 use std::vec::Vec;
 use std::option::Option;
 
-#[derive(Mock)]
+#[cfg(test)] use super::mockers_derive::mocked;
+#[cfg_attr(test, mocked)]
 pub trait Pomodoros {
     fn create(&self,
               start_time: DateTime<UTC>,
